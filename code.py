@@ -1,77 +1,67 @@
-# SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
-# SPDX-License-Identifier: MIT
-
-# You must add a gamepad HID device inside your boot.py file
-# in order to use this example.
-# See this Learn Guide for details:
-# https://learn.adafruit.com/customizing-usb-devices-in-circuitpython/hid-devices#custom-hid-devices-3096614-9
-
 import board
-import digitalio
-import analogio
-import usb_hid
+from analogio import AnalogIn
+from digitalio import DigitalInOut, Pull
 
-import adafruit_matrixkeypad
+import usb_hid
 from hid_gamepad import Gamepad
 
-# Classic 4x4 matrix keypad
-rows = [digitalio.DigitalInOut(x) for x in (board.D0, board.D1, board.D2, board.D3)]
-cols = [digitalio.DigitalInOut(x) for x in (board.D4, board.D5, board.D6, board.D7)]
-keypad_gp_nums = ((1,2,3,13),
-                (4,5,6,14),
-                (7,8,9,15),
-                (10,11,12,16))
-kp = adafruit_matrixkeypad.Matrix_Keypad(rows, cols, keypad_gp_nums)
+# Joystick X,Y are analog axis from joystick module
+joystickX = AnalogIn(board.A3)
+joystickY = AnalogIn(board.A2)
+# Joystick Fire (Vulcan & Missiles) are Digital IO - Pulled up and grounded when pressed
+joystickV = DigitalInOut(board.GP3)     # HID button 1
+joystickM = DigitalInOut(board.GP4)     # HID button 2
+joystickV.switch_to_input(Pull.UP)
+joystickM.switch_to_input(Pull.UP)
+# Throttle is tri-state Digital IO - Pulled up and grounded when connected
+throttleL = DigitalInOut(board.GP0)
+throttleH = DigitalInOut(board.GP2)
+throttleL.switch_to_input(Pull.UP)
+throttleH.switch_to_input(Pull.UP)
+# Select/Start are Digital IO - Pulled up and grounded when pressed
+buttonSelect = DigitalInOut(board.GP5)  # HID button 9
+buttonStart = DigitalInOut(board.GP6)   # HID button 10
+buttonSelect.switch_to_input(Pull.UP)
+buttonStart.switch_to_input(Pull.UP)
 
 # Gamepad
 gp = Gamepad(usb_hid.devices)
-
-# Create a button. 
-button_pin = digitalio.DigitalInOut(board.D21)
-button_pin.direction = digitalio.Direction.INPUT
-button_pin.pull = digitalio.Pull.UP
-button_gp_num = 1 # dups' one of the 4x4 keypad buttons
-
-# Connect an analog two-axis joystick to A8 and A9.
-ax = analogio.AnalogIn(board.A9)
-ay = analogio.AnalogIn(board.A8)
-# Connect an analog single-axis 'throttle' to A6
-az = analogio.AnalogIn(board.A6)
 
 # Equivalent of Arduino's map() function.
 def range_map(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) // (in_max - in_min) + out_min
 
-
 while True:
-    # Keypad
-    kp_pressed = kp.pressed_keys
-    kp_released = set(range(1,17)).difference(kp_pressed)
-    # Ignore the keypad button that dups the joystick button
-    try:
-        kp_pressed.remove(button_gp_num)
-        kp_released.remove(button_gp_num)
-    except:
-        pass
-    # report keypad buttons
-    gp.press_buttons(*kp_pressed)
-    gp.release_buttons(*kp_released)
- 
-    # Buttons are grounded when pressed (.value = False).
-    if button_pin.value:
-        gp.release_buttons(button_gp_num)
-    else:
-        gp.press_buttons(button_gp_num)
-    # Since stick button dup's a keypad button we don't have to release it
-
-    # Analog Stick. Convert range[0, 65535] to -127 to 127
-    xm = range_map(ax.value, 0, 65535, -127, 127)
-    ym = range_map(ay.value, 0, 65535, -127, 127)
-    zm = range_map(az.value, 0, 65535, -127, 127)
-    gp.move_joysticks(
-        x=xm,
-        y=ym,
-        z=zm,
-    )
-    print(" x:", xm, "y:", ym, "z:", zm, "kpp:", kp_pressed, "kpr:", kp_released)
+    # Read analog joystick inputs
+    x = range_map(joystickX.value, 0, 65535, -32767, 32767)
+    y = range_map(joystickY.value, 0, 65535, -32767, 32767)
+    # Read digital throttle inputs and map to an analog value
+    z = 0
+    if not throttleL.value:
+        z = -32767
+    elif not throttleH.value:
+        z = 32767
+    # Read buttons
+    pressed_buttons = []
+    # Joystick Vulcan Gun button
+    if not joystickV.value:
+        pressed_buttons.append(1)
+    # Joystick Missile button
+    if not joystickM.value:
+        pressed_buttons.append(2)
+    # Select button
+    if not buttonSelect.value:
+        pressed_buttons.append(9)
+    # Start button
+    if not buttonStart.value:
+        pressed_buttons.append(10)
     
+    released_buttons = set(range(1,17)).difference(pressed_buttons)
+
+    # Update gamepad joystick values
+    gp.move_joysticks(x = x, y = y, z = z, r_z=0)
+    # Update gamepad button values
+    gp.press_buttons(*pressed_buttons)
+    gp.release_buttons(*released_buttons)
+
+    print(" x: {:5d} y: {:5d} z: {:5d} bp: {} br: {}".format(x, y, z, pressed_buttons, released_buttons))
