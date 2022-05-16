@@ -12,6 +12,7 @@ Inputs include:
 * Analog joystick 1 with dual axis (x, y) to control the aircraft movement. 16-bit resolution (-32767 - 32767)
 * Analog Joystick 2 with single axis (z) to control the aircraft throttle. 16-bit resolution (-32767 - 32767)
 * 16 digital buttons with 4 in use for Vulcan Gun, Missile, Select & Start. The others are reported as unpressed.
+* Consumer Control Volume UP & DOWN
 
 Analog joystick 1 reads analog values from ADC pins A3 (x) & A2 (y)
 
@@ -23,7 +24,9 @@ All digital inputs are pulled high, and 'pressed' in the USB HID report when pul
 |-|-|
 | GP0 | Throttle Low (analog value -32676) |
 | GP1 | Throttle High (analog value 32767) |
-| GP3 | Vulcan Gun Trigger |
-| GP4 | Missile Button |
-| GP5 | Select Button |
-| GP6 | Start Button |
+| GP2 | Vulcan Gun Trigger |
+| GP3 | Missile Button |
+| GP4 | Select Button |
+| GP5 | Start Button |
+| GP6 | Volume Up |
+| GP7 | Volume Down |

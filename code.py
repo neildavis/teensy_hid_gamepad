@@ -4,28 +4,37 @@ from digitalio import DigitalInOut, Pull
 
 import usb_hid
 from hid_gamepad import Gamepad
+from adafruit_hid.consumer_control import ConsumerControl
+from adafruit_hid.consumer_control_code import ConsumerControlCode
 
 # Joystick X,Y are analog axis from joystick module
 joystickX = AnalogIn(board.A3)
 joystickY = AnalogIn(board.A2)
 # Joystick Fire (Vulcan & Missiles) are Digital IO - Pulled up and grounded when pressed
-joystickV = DigitalInOut(board.GP3)     # HID button 1
-joystickM = DigitalInOut(board.GP4)     # HID button 2
+joystickV = DigitalInOut(board.GP2)     # HID button 1
+joystickM = DigitalInOut(board.GP3)     # HID button 2
 joystickV.switch_to_input(Pull.UP)
 joystickM.switch_to_input(Pull.UP)
 # Throttle is tri-state Digital IO - Pulled up and grounded when connected
 throttleL = DigitalInOut(board.GP0)
-throttleH = DigitalInOut(board.GP2)
+throttleH = DigitalInOut(board.GP1)
 throttleL.switch_to_input(Pull.UP)
 throttleH.switch_to_input(Pull.UP)
 # Select/Start are Digital IO - Pulled up and grounded when pressed
-buttonSelect = DigitalInOut(board.GP5)  # HID button 9
-buttonStart = DigitalInOut(board.GP6)   # HID button 10
+buttonSelect = DigitalInOut(board.GP4)  # HID button 9
+buttonStart = DigitalInOut(board.GP5)   # HID button 10
 buttonSelect.switch_to_input(Pull.UP)
 buttonStart.switch_to_input(Pull.UP)
+# Volume Up/Down are digital IO - Pulled up and grounded when pressed
+buttonVolUp = DigitalInOut(board.GP6)
+buttonVolDown = DigitalInOut(board.GP7)
+buttonVolUp.switch_to_input(Pull.UP)
+buttonVolDown.switch_to_input(Pull.UP)
 
 # Gamepad
 gp = Gamepad(usb_hid.devices)
+# Consumer Control
+cc = ConsumerControl(usb_hid.devices)
 
 # Equivalent of Arduino's map() function.
 def range_map(x, in_min, in_max, out_min, out_max):
@@ -64,4 +73,17 @@ while True:
     gp.press_buttons(*pressed_buttons)
     gp.release_buttons(*released_buttons)
 
-    print(" x: {:5d} y: {:5d} z: {:5d} bp: {} br: {}".format(x, y, z, pressed_buttons, released_buttons))
+    # Volume controls
+    volUpPressed = not buttonVolUp.value
+    volDownPressed = not buttonVolDown.value
+    vol = "--"
+    if volDownPressed:
+       cc.press(ConsumerControlCode.VOLUME_DECREMENT)
+       vol = "DOWN"
+    elif volUpPressed:
+        cc.press(ConsumerControlCode.VOLUME_INCREMENT)
+        vol = "UP"
+    else:
+        cc.release()
+
+    print(" x: {:6d} y: {:6d} z: {:6d} bp: {} vol: {}".format(x, y, z, pressed_buttons, vol))
