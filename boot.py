@@ -57,7 +57,7 @@ Logitech F310 'Direct Input' (Dual Action) USB Input Device
 # This is only one example of a gamepad descriptor, and may not suit your needs.
 GAMEPAD_REPORT_DESCRIPTOR = bytes((
     0x05, 0x01,         # Usage Page (Generic Desktop Ctrls)
-    0x09, 0x05,         # Usage (Game Pad)
+    0x09, 0x04,         # Usage (Joystick)
     0xA1, 0x01,         # Collection (Application)
     0x85, 0x04,         #   Report ID (4)
     0x05, 0x09,         #   Usage Page (Button)
@@ -84,14 +84,12 @@ GAMEPAD_REPORT_DESCRIPTOR = bytes((
 gamepad = usb_hid.Device(
     report_descriptor=GAMEPAD_REPORT_DESCRIPTOR,
     usage_page=0x01,           # Generic Desktop Control
-    usage=0x05,                # Gamepad
+    usage=0x04,                # Joystick
     report_ids=(4,),           # Descriptor uses report ID 4.
     in_report_lengths=(10,),   # This gamepad sends 10 bytes in its report.
     out_report_lengths=(0,),   # It does not receive any reports.
 )
 
 usb_hid.enable(
-    (
-     usb_hid.Device.CONSUMER_CONTROL,
-     gamepad)
+    ( gamepad, usb_hid.Device.CONSUMER_CONTROL )
 )

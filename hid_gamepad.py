@@ -32,7 +32,7 @@ class Gamepad:
         itself. A device is any object that implements ``send_report()``, ``usage_page`` and
         ``usage``.
         """
-        self._gamepad_device = find_device(devices, usage_page=0x1, usage=0x05)
+        self._gamepad_device = find_device(devices, usage_page=0x1, usage=0x04)
 
         # Reuse this bytearray to send mouse reports.
         # Typically controllers start numbering buttons at 1 rather than 0.

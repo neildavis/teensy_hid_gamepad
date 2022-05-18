@@ -45,11 +45,11 @@ while True:
     x = range_map(joystickX.value, 0, 65535, -32767, 32767)
     y = range_map(joystickY.value, 0, 65535, -32767, 32767)
     # Read digital throttle inputs and map to an analog value
-    z = 0
+    t = 0
     if not throttleL.value:
-        z = -32767
+        t = -32767
     elif not throttleH.value:
-        z = 32767
+        t = 32767
     # Read buttons
     pressed_buttons = []
     # Joystick Vulcan Gun button
@@ -68,7 +68,7 @@ while True:
     released_buttons = set(range(1,17)).difference(pressed_buttons)
 
     # Update gamepad joystick values
-    gp.move_joysticks(x = x, y = y, z = z, r_z=0)
+    gp.move_joysticks(x = x, y = y, z = t, r_z=0)
     # Update gamepad button values
     gp.press_buttons(*pressed_buttons)
     gp.release_buttons(*released_buttons)
@@ -86,4 +86,4 @@ while True:
     else:
         cc.release()
 
-    print(" x: {:6d} y: {:6d} z: {:6d} bp: {} vol: {}".format(x, y, z, pressed_buttons, vol))
+    print(" x: {:6d} y: {:6d} t: {:6d} bp: {} vol: {}".format(x, y, t, pressed_buttons, vol))
