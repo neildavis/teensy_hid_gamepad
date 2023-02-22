@@ -12,8 +12,9 @@ from adafruit_hid.mouse import Mouse
 from as5600 import AS5600
 
 # Constants
-RAW_ANGLE_DELTA_THRESHOLD = 2 # Debounce AS5600 raw angle input
-START_BUTTON_HID_NUM = 10 # Start button is button number 10 on our gamepad
+RAW_ANGLE_DELTA_THRESHOLD = 2   # Debounce AS5600 raw angle input
+START_BUTTON_HID_NUM = 10       # Start button is button number 10 on our gamepad
+GEAR_BUTTON_HID_NUM = 3         # Gear button is button number 3 on our gamepad
 # RP2040 & AS5600 support I2C 'fast-mode plus' with freq <= 1 MHz
 AS5600_I2C_FREQUENCY = 1000000
 
@@ -34,9 +35,11 @@ else:
 
 # X-axis is Throttle from potentiometer on ADC2
 throttle = AnalogIn(board.A2)
-# Start button is Digital IO - Pulled up and grounded when pressed
+# Start button & Gear are Digital IO - Pulled up and grounded when pressed
 button_start = DigitalInOut(board.GP29)
 button_start.switch_to_input(Pull.UP)
+button_gear = DigitalInOut(board.GP7)
+button_gear.switch_to_input(Pull.UP)
 
 # Volume Up/Down buttons are digital IO - Pulled up and grounded when pressed
 button_vol_up = DigitalInOut(board.GP1)
@@ -70,9 +73,12 @@ while True:
     throttle_val = range_map(throttle.value, 0, 65535, -32767, 32767)
     # Read buttons
     pressed_buttons = []
-    # Start button
+    # - Start button
     if not button_start.value:
         pressed_buttons.append(START_BUTTON_HID_NUM)
+    # - Gear button
+    if not button_gear.value:
+        pressed_buttons.append(GEAR_BUTTON_HID_NUM)
     released_buttons = set(range(1,17)).difference(pressed_buttons)
     # Update gamepad joystick axis values
     gp.move_joysticks(x = throttle_val)
