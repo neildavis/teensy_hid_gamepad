@@ -1,77 +1,92 @@
-# SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
-# SPDX-License-Identifier: MIT
-
-# You must add a gamepad HID device inside your boot.py file
-# in order to use this example.
-# See this Learn Guide for details:
-# https://learn.adafruit.com/customizing-usb-devices-in-circuitpython/hid-devices#custom-hid-devices-3096614-9
-
 import board
-import digitalio
-import analogio
+from analogio import AnalogIn
+from digitalio import DigitalInOut, Pull
+
 import usb_hid
+import busio
 
-import adafruit_matrixkeypad
 from hid_gamepad import Gamepad
+from adafruit_hid.consumer_control import ConsumerControl
+from adafruit_hid.consumer_control_code import ConsumerControlCode
+from adafruit_hid.mouse import Mouse
+from as5600 import AS5600
 
-# Classic 4x4 matrix keypad
-rows = [digitalio.DigitalInOut(x) for x in (board.D0, board.D1, board.D2, board.D3)]
-cols = [digitalio.DigitalInOut(x) for x in (board.D4, board.D5, board.D6, board.D7)]
-keypad_gp_nums = ((1,2,3,13),
-                (4,5,6,14),
-                (7,8,9,15),
-                (10,11,12,16))
-kp = adafruit_matrixkeypad.Matrix_Keypad(rows, cols, keypad_gp_nums)
-
+# Mouse
+mouse = Mouse(usb_hid.devices)
 # Gamepad
 gp = Gamepad(usb_hid.devices)
+# Consumer Control
+cc = ConsumerControl(usb_hid.devices)
 
-# Create a button. 
-button_pin = digitalio.DigitalInOut(board.D21)
-button_pin.direction = digitalio.Direction.INPUT
-button_pin.pull = digitalio.Pull.UP
-button_gp_num = 1 # dups' one of the 4x4 keypad buttons
+# Setup AS5600
+i2c = busio.I2C(scl=board.GP27, sda=board.GP26)
+z = AS5600(i2c, 0x36)
+if z.scan():
+    print(f'AS5600 found: {z.magnet_status()}')
+else:
+    print('AS5600 NOT found')
 
-# Connect an analog two-axis joystick to A8 and A9.
-ax = analogio.AnalogIn(board.A9)
-ay = analogio.AnalogIn(board.A8)
-# Connect an analog single-axis 'throttle' to A6
-az = analogio.AnalogIn(board.A6)
+# X-axis is Throttle from potentiometer on ADC2
+throttle = AnalogIn(board.A2)
+# Start button is Digital IO - Pulled up and grounded when pressed
+button_start = DigitalInOut(board.GP29)
+button_start.switch_to_input(Pull.UP)
+
+# Volume Up/Down buttons are digital IO - Pulled up and grounded when pressed
+button_vol_up = DigitalInOut(board.GP1)
+button_vol_down = DigitalInOut(board.GP2)
+button_vol_up.switch_to_input(Pull.UP)
+button_vol_down.switch_to_input(Pull.UP)
 
 # Equivalent of Arduino's map() function.
 def range_map(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) // (in_max - in_min) + out_min
 
+# Constants
+RAW_ANGLE_DELTA_THRESHOLD = 2
+START_BUTTON_HID_NUM = 10 # Start button is button number 10 on our gamepad
 
+last_raw_angle = -1
 while True:
-    # Keypad
-    kp_pressed = kp.pressed_keys
-    kp_released = set(range(1,17)).difference(kp_pressed)
-    # Ignore the keypad button that dups the joystick button
-    try:
-        kp_pressed.remove(button_gp_num)
-        kp_released.remove(button_gp_num)
-    except:
-        pass
-    # report keypad buttons
-    gp.press_buttons(*kp_pressed)
-    gp.release_buttons(*kp_released)
- 
-    # Buttons are grounded when pressed (.value = False).
-    if button_pin.value:
-        gp.release_buttons(button_gp_num)
-    else:
-        gp.press_buttons(button_gp_num)
-    # Since stick button dup's a keypad button we don't have to release it
+    # Read AS5600
+    new_raw_angle = z.RAWANGLE
+    if last_raw_angle < 0:
+        last_raw_angle = new_raw_angle
+    angle_diff = new_raw_angle - last_raw_angle
+    # Correct the zero crossover glitch. If abs(angle_diff) is > 3/4 of range in a single reading,
+    # then assume we have crossed zero position.
+    if angle_diff < -0xc00:
+        angle_diff += 0xfff
+    elif angle_diff > 0xc00:
+        angle_diff -= 0xfff
+    if abs(angle_diff) > RAW_ANGLE_DELTA_THRESHOLD:
+        # Move the mouse
+        mouse.move(x=angle_diff)
+        last_raw_angle = new_raw_angle
 
-    # Analog Stick. Convert range[0, 65535] to -127 to 127
-    xm = range_map(ax.value, 0, 65535, -127, 127)
-    ym = range_map(ay.value, 0, 65535, -127, 127)
-    zm = range_map(az.value, 0, 65535, -127, 127)
-    gp.move_joysticks(
-        x=xm,
-        y=ym,
-        z=zm,
-    )
-    print(" x:", xm, "y:", ym, "z:", zm, "kpp:", kp_pressed, "kpr:", kp_released)
-    
+    # Read analog inputs
+    throttle_val = range_map(throttle.value, 0, 65535, -32767, 32767)
+    # Read buttons
+    pressed_buttons = []
+    # Start button
+    if not button_start.value:
+        pressed_buttons.append(START_BUTTON_HID_NUM)
+    released_buttons = set(range(1,17)).difference(pressed_buttons)
+    # Update gamepad joystick axis values
+    gp.move_joysticks(x = throttle_val)
+    # Update gamepad button values
+    gp.press_buttons(*pressed_buttons)
+    gp.release_buttons(*released_buttons)
+
+    # Read Volume controls
+    volUpPressed = not button_vol_up.value
+    volDownPressed = not button_vol_down.value
+    # Send Consumer Control events for Volume
+    if volDownPressed:
+       cc.press(ConsumerControlCode.VOLUME_DECREMENT)
+    elif volUpPressed:
+        cc.press(ConsumerControlCode.VOLUME_INCREMENT)
+    else:
+        cc.release()
+
+   
