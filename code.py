@@ -11,6 +11,12 @@ from adafruit_hid.consumer_control_code import ConsumerControlCode
 from adafruit_hid.mouse import Mouse
 from as5600 import AS5600
 
+# Constants
+RAW_ANGLE_DELTA_THRESHOLD = 2 # Debounce AS5600 raw angle input
+START_BUTTON_HID_NUM = 10 # Start button is button number 10 on our gamepad
+# RP2040 & AS5600 support I2C 'fast-mode plus' with freq <= 1 MHz
+AS5600_I2C_FREQUENCY = 1000000
+
 # Mouse
 mouse = Mouse(usb_hid.devices)
 # Gamepad
@@ -19,7 +25,7 @@ gp = Gamepad(usb_hid.devices)
 cc = ConsumerControl(usb_hid.devices)
 
 # Setup AS5600
-i2c = busio.I2C(scl=board.GP27, sda=board.GP26)
+i2c = busio.I2C(scl=board.GP27, sda=board.GP26, frequency=AS5600_I2C_FREQUENCY)
 z = AS5600(i2c, 0x36)
 if z.scan():
     print(f'AS5600 found: {z.magnet_status()}')
@@ -41,10 +47,6 @@ button_vol_down.switch_to_input(Pull.UP)
 # Equivalent of Arduino's map() function.
 def range_map(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) // (in_max - in_min) + out_min
-
-# Constants
-RAW_ANGLE_DELTA_THRESHOLD = 2
-START_BUTTON_HID_NUM = 10 # Start button is button number 10 on our gamepad
 
 last_raw_angle = -1
 while True:
