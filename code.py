@@ -43,7 +43,7 @@ button_gear.switch_to_input(Pull.UP)
 
 # Volume Up/Down buttons are digital IO - Pulled up and grounded when pressed
 button_vol_up = DigitalInOut(board.GP1)
-button_vol_down = DigitalInOut(board.GP2)
+button_vol_down = DigitalInOut(board.GP3)
 button_vol_up.switch_to_input(Pull.UP)
 button_vol_down.switch_to_input(Pull.UP)
 
