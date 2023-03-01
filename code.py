@@ -15,6 +15,7 @@ from as5600 import AS5600
 RAW_ANGLE_DELTA_THRESHOLD = 2   # Debounce AS5600 raw angle input
 START_BUTTON_HID_NUM = 10       # Start button is button number 10 on our gamepad
 GEAR_BUTTON_HID_NUM = 3         # Gear button is button number 3 on our gamepad
+THROTTLE_RANGE=range(80, 34704)      # Physically constrained range of Pot' movement from testing
 # RP2040 & AS5600 support I2C 'fast-mode plus' with freq <= 1 MHz
 AS5600_I2C_FREQUENCY = 1000000
 
@@ -51,6 +52,10 @@ button_vol_down.switch_to_input(Pull.UP)
 def range_map(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) // (in_max - in_min) + out_min
 
+# Simple range clamp func
+def clamp(n, minn, maxn):
+    return max(min(maxn, n), minn)
+
 last_raw_angle = -1
 while True:
     # Read AS5600
@@ -70,7 +75,9 @@ while True:
         last_raw_angle = new_raw_angle
 
     # Read analog inputs
-    throttle_val = range_map(throttle.value, 0, 65535, -32767, 32767)
+    throttle_val = clamp(throttle.value, THROTTLE_RANGE.start, THROTTLE_RANGE.stop)
+    throttle_val = range_map(throttle_val, THROTTLE_RANGE.start, THROTTLE_RANGE.stop, -32767, 32767)
+    print(f'throttle_val: {throttle_val}')
     # Read buttons
     pressed_buttons = []
     # - Start button
@@ -81,7 +88,7 @@ while True:
         pressed_buttons.append(GEAR_BUTTON_HID_NUM)
     released_buttons = set(range(1,17)).difference(pressed_buttons)
     # Update gamepad joystick axis values
-    gp.move_joysticks(x = throttle_val)
+    gp.move_joysticks(y = throttle_val)
     # Update gamepad button values
     gp.press_buttons(*pressed_buttons)
     gp.release_buttons(*released_buttons)
