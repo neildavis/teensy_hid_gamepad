@@ -1,3 +1,5 @@
+from adafruit_datetime import datetime
+
 import board
 from analogio import AnalogIn
 from digitalio import DigitalInOut, Pull
@@ -16,8 +18,11 @@ RAW_ANGLE_DELTA_THRESHOLD = 2   # Debounce AS5600 raw angle input
 START_BUTTON_HID_NUM = 10       # Start button is button number 10 on our gamepad
 GEAR_BUTTON_HID_NUM = 3         # Gear button is button number 3 on our gamepad
 THROTTLE_RANGE=range(80, 34704)      # Physically constrained range of Pot' movement from testing
+CC_POWER_CODE = 0x30    # USB HID usage for CC Power
 # RP2040 & AS5600 support I2C 'fast-mode plus' with freq <= 1 MHz
 AS5600_I2C_FREQUENCY = 1000000
+# Holding 'Start' button for this period will send a Power Off command
+START_BUTTON_HOLD_FOR_SHUTDOWN_SECS = 3
 
 # Mouse
 mouse = Mouse(usb_hid.devices)
@@ -57,6 +62,8 @@ def clamp(n, minn, maxn):
     return max(min(maxn, n), minn)
 
 last_raw_angle = -1
+start_button_down = None
+power_cmd_sent = False
 while True:
     # Read AS5600
     new_raw_angle = z.RAWANGLE
@@ -75,20 +82,34 @@ while True:
         last_raw_angle = new_raw_angle
 
     # Read analog inputs
-    throttle_val = clamp(throttle.value, THROTTLE_RANGE.start, THROTTLE_RANGE.stop)
-    throttle_val = range_map(throttle_val, THROTTLE_RANGE.start, THROTTLE_RANGE.stop, -32767, 32767)
-    print(f'throttle_val: {throttle_val}')
+    throttle_val_raw = throttle.value
+    throttle_val_clamped = clamp(throttle_val_raw, THROTTLE_RANGE.start, THROTTLE_RANGE.stop)
+    throttle_val_mapped = range_map(throttle_val_clamped, THROTTLE_RANGE.start, THROTTLE_RANGE.stop, -32767, 32767)
+    #print(f'throttle: (raw, clamped, mapped): {throttle_val_raw}, {throttle_val_clamped}, {throttle_val_mapped}')
     # Read buttons
     pressed_buttons = []
     # - Start button
     if not button_start.value:
         pressed_buttons.append(START_BUTTON_HID_NUM)
+        if None == start_button_down:
+            start_button_down = datetime.now()
+            #print(f'Start button now down at: {start_button_down}')
+        else:
+            start_button_held = datetime.now() - start_button_down
+            if start_button_held.seconds >= START_BUTTON_HOLD_FOR_SHUTDOWN_SECS and not power_cmd_sent:
+                # Initiate system shutdown
+                print(f'Start button held for {start_button_held.seconds} seconds. Sending KEY_POWER code')
+                cc.send(CC_POWER_CODE)
+                power_cmd_sent = True
+    else:
+        start_button_down = None
+        power_cmd_sent = False
     # - Gear button
     if not button_gear.value:
         pressed_buttons.append(GEAR_BUTTON_HID_NUM)
     released_buttons = set(range(1,17)).difference(pressed_buttons)
     # Update gamepad joystick axis values
-    gp.move_joysticks(y = throttle_val)
+    gp.move_joysticks(y = throttle_val_mapped)
     # Update gamepad button values
     gp.press_buttons(*pressed_buttons)
     gp.release_buttons(*released_buttons)
