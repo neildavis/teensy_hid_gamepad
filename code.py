@@ -17,7 +17,7 @@ from as5600 import AS5600
 
 # Constants
 RAW_ANGLE_DELTA_THRESHOLD = 2   # Debounce AS5600 raw angle input
-THROTTLE_DELTA_THRESHOLD = 16   # Debounce throttle pot' ADC input
+THROTTLE_DELTA_THRESHOLD = 160   # Debounce throttle pot' ADC input
 START_BUTTON_HID_NUM = 10       # Start button is button number 10 on our gamepad
 GEAR_BUTTON_HID_NUM = 3         # Gear button is button number 3 on our gamepad
 THROTTLE_RANGE=range(80, 34704)      # Physically constrained range of Pot' movement from testing
@@ -158,6 +158,8 @@ def update_volume_controls():
 start_button_down = None
 power_cmd_sent = False
 def update_gamepad_buttons_from_digital_inputs():
+    global start_button_down
+    global power_cmd_sent
     # Read buttons
     pressed_buttons = []
     # - Start button
@@ -193,5 +195,3 @@ while True:
         update_gamepad_axis_from_adc()
         update_gamepad_buttons_from_digital_inputs()
         update_volume_controls()
-
-   
