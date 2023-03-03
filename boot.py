@@ -1,5 +1,6 @@
 import usb_hid
 import usb_midi
+import usb_cdc
 
 # We'll simulate a standard dual analog thumb-stick gamepad with 16 digital buttons
 # even though we don't need anywhere near this number of inputs
@@ -40,6 +41,9 @@ gamepad = usb_hid.Device(
 
 # Disable MIDI to save on USB I/O endpoints
 usb_midi.disable()
+# enable the data CDC serial
+usb_cdc.enable(console=True, data=True)
+
 # Enable gamepad (throttle + buttons), consumer control (volume) and mouse (steering) HID devices
 usb_hid.enable(
     ( gamepad, usb_hid.Device.CONSUMER_CONTROL, usb_hid.Device.MOUSE )
