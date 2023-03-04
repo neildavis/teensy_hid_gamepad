@@ -62,11 +62,14 @@ class Gamepad:
 
         # Send an initial report to test if HID device is ready.
         # If not, wait a bit and try once more.
-        try:
-            self.reset_all()
-        except OSError:
-            time.sleep(1)
-            self.reset_all()
+        while True:
+            try:
+                self.reset_all()
+            except OSError:
+                time.sleep(0.1)
+                self.reset_all()
+                continue
+            break
 
     def press_buttons(self, *buttons):
         """Press and hold the given buttons."""

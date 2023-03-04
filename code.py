@@ -52,6 +52,14 @@ if z.scan():
 else:
     print('AS5600 NOT found')
 
+# LEDs for debugging
+led_red=DigitalInOut(board.LED_R)
+led_green=DigitalInOut(board.LED_G)
+led_blue=DigitalInOut(board.LED_B)
+led_red.switch_to_output(False)
+led_green.switch_to_output(False)
+led_blue.switch_to_output(False)
+
 # X-axis is Throttle from potentiometer on ADC2
 throttle = AnalogIn(board.A2)
 # Start button & Gear are Digital IO - Pulled up and grounded when pressed
@@ -183,7 +191,7 @@ def update_volume_controls():
     volDownPressed = not button_vol_down.value
     # Send Consumer Control events for Volume
     if volDownPressed:
-       cc.press(ConsumerControlCode.VOLUME_DECREMENT)
+        cc.press(ConsumerControlCode.VOLUME_DECREMENT)
     elif volUpPressed:
         cc.press(ConsumerControlCode.VOLUME_INCREMENT)
     else:
@@ -215,8 +223,10 @@ def update_gamepad_buttons_from_digital_inputs():
         power_cmd_sent = False
     # - Gear button
     if not button_gear.value:
+        #led_red.value = True
         pressed_buttons.add(GEAR_BUTTON_HID_NUM)
     else:
+        #led_red.value = False
         pressed_buttons.discard(GEAR_BUTTON_HID_NUM)
     # Update gamepad button values
     released_buttons = set(range(1,17)).difference(pressed_buttons)
