@@ -69,6 +69,11 @@ button_vol_down.switch_to_input(Pull.UP)
 # Gamepad pressed buttons
 pressed_buttons = set()
 
+# Clear any existing pending serial data
+num_bytes_to_read =  usb_cdc.data.in_waiting
+if num_bytes_to_read > 0:
+    usb_cdc.data.read(num_bytes_to_read)
+
 # Equivalent of Arduino's map() function.
 def range_map(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) // (in_max - in_min) + out_min
