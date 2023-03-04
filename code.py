@@ -20,7 +20,15 @@ RAW_ANGLE_DELTA_THRESHOLD = 2   # Debounce AS5600 raw angle input
 THROTTLE_DELTA_THRESHOLD = 160   # Debounce throttle pot' ADC input
 START_BUTTON_HID_NUM = 10       # Start button is button number 10 on our gamepad
 GEAR_BUTTON_HID_NUM = 3         # Gear button is button number 3 on our gamepad
-THROTTLE_RANGE=range(80, 34704)      # Physically constrained range of Pot' movement from testing
+# 'Turbo' has a tri-state digital throttle none/mid/max which we map from analog range and convert to button inputs
+TURBO_THROTTLE_MID_HID_NUM = 1
+TURBO_THROTTLE_MID_THRESHOLD = -10922
+TURBO_THROTTLE_MAX_HID_NUM = 2
+TURBO_THROTTLE_MAX_THRESHOLD = 10922
+# Physically constrained range of Pot' movement from testing
+THROTTLE_RANGE_RAW=range(80, 34704)
+# Mapped range of throttle
+THROTTLE_RANGE_MAPPED=range(-32767, 32767)
 CC_POWER_CODE = 0x30    # USB HID usage for CC Power
 # RP2040 & AS5600 support I2C 'fast-mode plus' with freq <= 1 MHz
 AS5600_I2C_FREQUENCY = 1000000
@@ -58,6 +66,9 @@ button_vol_down = DigitalInOut(board.GP3)
 button_vol_up.switch_to_input(Pull.UP)
 button_vol_down.switch_to_input(Pull.UP)
 
+# Gamepad pressed buttons
+pressed_buttons = set()
+
 # Equivalent of Arduino's map() function.
 def range_map(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) // (in_max - in_min) + out_min
@@ -67,6 +78,7 @@ def clamp(n, minn, maxn):
     return max(min(maxn, n), minn)
 
 def read_cmd_from_serial():
+    global pressed_buttons
     num_bytes_to_read =  usb_cdc.data.in_waiting
     if num_bytes_to_read > 0:
         cdc_data = usb_cdc.data.readline()
@@ -79,7 +91,7 @@ def read_cmd_from_serial():
             return False
         if len(cmds) > 0:  
             print(f'Decoded cmds: {cmds}')
-            pressed_buttons = []
+            pressed_buttons.clear()
             gamepad_axes_values = {'x':0, 'y':0, 'z':0, 'r_z':0}
             hold_time=0.5
             for input, value in cmds.items():
@@ -90,7 +102,7 @@ def read_cmd_from_serial():
                 if input[0] == 'b':
                     # This is a digital button input value, i.e. b1/b2/ ... /b15/b16
                     if int(value) > 0:
-                        pressed_buttons.append(int(input[1:]))
+                        pressed_buttons.add(int(input[1:]))
                 elif input in ['x', 'y', 'z', 'r_z']:
                     # This is an analog input axis value, i.e. x/y/z/r_x
                     gamepad_axes_values[input] = value
@@ -106,7 +118,11 @@ def read_cmd_from_serial():
             # update gamepad axes
             if len(gamepad_axes_values) > 0:
                 gp.move_joysticks(**gamepad_axes_values) 
-            sleep(hold_time)          
+            # hold before releasing all buttons and centring axes
+            sleep(hold_time)
+            pressed_buttons.clear()
+            gp.release_all_buttons()
+            gp.move_joysticks(0,0,0,0)
             return True
     return False
 
@@ -133,14 +149,28 @@ last_raw_throttle = 0
 def update_gamepad_axis_from_adc():
     # Read analog inputs
     global last_raw_throttle
+    global pressed_buttons
     throttle_val_raw = throttle.value
     if abs(throttle_val_raw - last_raw_throttle) > THROTTLE_DELTA_THRESHOLD:
         last_raw_throttle = throttle_val_raw
-        throttle_val_clamped = clamp(throttle_val_raw, THROTTLE_RANGE.start, THROTTLE_RANGE.stop)
-        throttle_val_mapped = range_map(throttle_val_clamped, THROTTLE_RANGE.start, THROTTLE_RANGE.stop, -32767, 32767)
-        print(f'throttle: (raw, clamped, mapped): {throttle_val_raw}, {throttle_val_clamped}, {throttle_val_mapped}')
+        throttle_val_clamped = clamp(throttle_val_raw, THROTTLE_RANGE_RAW.start, THROTTLE_RANGE_RAW.stop)
+        throttle_val_mapped = range_map(throttle_val_clamped, \
+            THROTTLE_RANGE_RAW.start, THROTTLE_RANGE_RAW.stop, \
+            THROTTLE_RANGE_MAPPED.start, THROTTLE_RANGE_MAPPED.stop)
+        #print(f'throttle: (raw, clamped, mapped): {throttle_val_raw}, {throttle_val_clamped}, {throttle_val_mapped}')
         # Update gamepad joystick axis values
         gp.move_joysticks(y = throttle_val_mapped)
+        # 'Turbo' throttle is composed of two digital switches for half/full throttle. Map analog throttle range to these
+        if throttle_val_mapped > TURBO_THROTTLE_MAX_THRESHOLD:
+            pressed_buttons.add(TURBO_THROTTLE_MAX_HID_NUM)
+            pressed_buttons.discard(TURBO_THROTTLE_MID_HID_NUM)
+        elif throttle_val_mapped > TURBO_THROTTLE_MID_THRESHOLD:
+            pressed_buttons.add(TURBO_THROTTLE_MID_HID_NUM)
+            pressed_buttons.discard(TURBO_THROTTLE_MAX_HID_NUM)
+        else:
+            pressed_buttons.discard(TURBO_THROTTLE_MAX_HID_NUM)
+            pressed_buttons.discard(TURBO_THROTTLE_MID_HID_NUM)
+        # Update gamepad button values occurs in update_gamepad_buttons_from_digital_inputs
 
 def update_volume_controls():
     # Read Volume controls
@@ -161,13 +191,12 @@ def update_gamepad_buttons_from_digital_inputs():
     global start_button_down
     global power_cmd_sent
     # Read buttons
-    pressed_buttons = []
+    global pressed_buttons
     # - Start button
     if not button_start.value:
-        pressed_buttons.append(START_BUTTON_HID_NUM)
+        pressed_buttons.add(START_BUTTON_HID_NUM)
         if None == start_button_down:
             start_button_down = datetime.now()
-            #print(f'Start button now down at: {start_button_down}')
         else:
             start_button_held = datetime.now() - start_button_down
             if start_button_held.seconds >= START_BUTTON_HOLD_FOR_SHUTDOWN_SECS and not power_cmd_sent:
@@ -176,11 +205,14 @@ def update_gamepad_buttons_from_digital_inputs():
                 cc.send(CC_POWER_CODE)
                 power_cmd_sent = True
     else:
+        pressed_buttons.discard(START_BUTTON_HID_NUM)
         start_button_down = None
         power_cmd_sent = False
     # - Gear button
     if not button_gear.value:
-        pressed_buttons.append(GEAR_BUTTON_HID_NUM)
+        pressed_buttons.add(GEAR_BUTTON_HID_NUM)
+    else:
+        pressed_buttons.discard(GEAR_BUTTON_HID_NUM)
     # Update gamepad button values
     released_buttons = set(range(1,17)).difference(pressed_buttons)
     gp.press_buttons(*pressed_buttons)
