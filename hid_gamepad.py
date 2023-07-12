@@ -32,21 +32,25 @@ class Gamepad:
         itself. A device is any object that implements ``send_report()``, ``usage_page`` and
         ``usage``.
         """
-        self._gamepad_device = find_device(devices, usage_page=0x1, usage=0x05)
+        self._gamepad_device = find_device(devices, usage_page=0x1, usage=0x04)
 
         # Reuse this bytearray to send mouse reports.
         # Typically controllers start numbering buttons at 1 rather than 0.
         # report[0] buttons 1-8 (LSB is button 1)
         # report[1] buttons 9-16
-        # report[2] joystick 0 x: -127 to 127
-        # report[3] joystick 0 y: -127 to 127
-        # report[4] joystick 1 x: -127 to 127
-        # report[5] joystick 1 y: -127 to 127
-        self._report = bytearray(6)
+        # report[2] joystick x: -32767 to 32767 LSB
+        # report[3] joystick x: -32767 to 32767 MSB
+        # report[4] joystick y: -32767 to 32767 LSB
+        # report[5] joystick y: -32767 to 32767 MSB
+        # report[6] joystick z: -32767 to 32767 LSB
+        # report[7] joystick z: -32767 to 32767 MSB
+        # report[8] joystick Rz: -32767 to 32767 LSB
+        # report[9] joystick Rz: -32767 to 32767 MSB
+        self._report = bytearray(10)
 
         # Remember the last report as well, so we can avoid sending
         # duplicate reports.
-        self._last_report = bytearray(6)
+        self._last_report = bytearray(10)
 
         # Store settings separately before putting into report. Saves code
         # especially for buttons.
@@ -58,11 +62,14 @@ class Gamepad:
 
         # Send an initial report to test if HID device is ready.
         # If not, wait a bit and try once more.
-        try:
-            self.reset_all()
-        except OSError:
-            time.sleep(1)
-            self.reset_all()
+        while True:
+            try:
+                self.reset_all()
+            except OSError:
+                time.sleep(0.1)
+                self.reset_all()
+                continue
+            break
 
     def press_buttons(self, *buttons):
         """Press and hold the given buttons."""
@@ -129,7 +136,7 @@ class Gamepad:
         If ``always`` is ``False`` (the default), send only if there have been changes.
         """
         struct.pack_into(
-            "<Hbbbb",
+            "<Hhhhh",
             self._report,
             0,
             self._buttons_state,
@@ -152,6 +159,6 @@ class Gamepad:
 
     @staticmethod
     def _validate_joystick_value(value):
-        if not -127 <= value <= 127:
-            raise ValueError("Joystick value must be in range -127 to 127")
+        if not -32767 <= value <= 32767:
+            raise ValueError("Joystick value must be in range -32767 to 32767")
         return value
