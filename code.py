@@ -59,7 +59,6 @@ BUTTON_HAT_UP       = 13
 BUTTON_HAT_DOWN     = 14
 BUTTON_HAT_LEFT     = 15
 BUTTON_HAT_RIGHT    = 16
-# TODO: Add a further digital io buttons with unique HID button ids in range 1-16 if required
 BUTTON_MAX          = BUTTON_HAT_RIGHT
 
 # CC Volume handled by buttons outside gamepad button range
@@ -89,9 +88,7 @@ for btn, pin in button_pins.items():
 pressed_buttons = set()
 
 # Clear any existing pending serial data
-num_bytes_to_read =  usb_cdc.data.in_waiting
-if num_bytes_to_read > 0:
-    usb_cdc.data.read(num_bytes_to_read)
+usb_cdc.data.reset_input_buffer()
 
 # Equivalent of Arduino's map() function.
 def range_map(x, in_min, in_max, out_min, out_max):
@@ -128,10 +125,10 @@ def process_commands(**cmds):
             # Hold control(s) for a period of time
             hold_time = value
         elif input == 'pre':
-            # Hold control(s) for a period of time
+            # Wait for a period of time BEFORE changing any values
             pre_wait = value
         elif input == 'post':
-            # Hold control(s) for a period of time
+            # Wait for a period of time AFTER changing (and resetting) any values
             post_wait = value
     released_buttons = set(range(1,17)).difference(pressed_buttons)
 
@@ -159,26 +156,57 @@ def process_commands(**cmds):
     cc.release()
     # post-wait period
     sleep(post_wait)
-    
 
-def read_cmd_from_serial():
-    num_bytes_to_read =  usb_cdc.data.in_waiting
-    if num_bytes_to_read > 0:
-        cdc_data = usb_cdc.data.readline()
-        cdc_str = cdc_data.decode("utf-8")[0:-1]
-        print(f'Read {len(cdc_data)} bytes from usb_cdc.data: {cdc_str}')
-        if cdc_str == 'conf_es':
-            configure_emulation_station()
-            return True
-        # decode 'name=value' pair commands. e.g cdc_str = "b1=0;b2=1; ... ;x=32767;y=-32767;z=0;r_z="
-        try:
-            cmds = dict(item.split("=") for item in cdc_str.split(";"))
-        except:
-            return False
-        if len(cmds) > 0:  
-            print(f'Decoded cmds: {cmds}')
-            process_commands(**cmds)
-            return True
+
+cdc_data = bytearray()
+def read_cdc_line_from_serial() -> str:
+    '''
+    Read data from usb_cdc.data into cdc_data until CR (0xd) or LF(0xa) are found
+    Backspaces (0x8) will remove the last char read prior to a CR/LF
+    '''
+    global cdc_data
+    cdc_str = None
+    while usb_cdc.data.in_waiting > 0:
+        # Read serial data into cdc_data until we hit a newline
+        next_byte = usb_cdc.data.read(1)
+        if len(next_byte) > 0:
+            # Break on CR/LF
+            if next_byte[0] == 0xd or next_byte[0] == 0xa:
+                if len(cdc_data) > 0:
+                    # Decode buffer
+                    cdc_str = cdc_data.decode("utf-8")
+                    # Reset buffer for next sequence
+                    cdc_data = bytearray()
+                break
+            # handle backspace
+            if next_byte[0] == 0x8 and len(cdc_data) > 0:
+                cdc_data = cdc_data[0:-1]
+                continue
+            # Add byte to cdc_data buffer
+            cdc_data += next_byte
+    return cdc_str
+
+def read_cmd_from_serial() -> bool:
+    '''
+    Attempt to read a valid command sequence from usb_cdc.data serial
+    '''
+    cdc_str = read_cdc_line_from_serial()
+    if None == cdc_str:
+        return False
+    print(f'Read cmd line from usb cdc: {cdc_str}')
+    # Process cdc_str
+    if cdc_str == 'conf_es':
+        configure_emulation_station()
+        return True
+    # decode 'name=value' pair commands. e.g cdc_str = "b1=0;b2=1; ... ;x=32767;y=-32767;z=0;r_z="
+    try:
+        cmds = dict(item.split("=") for item in cdc_str.split(";"))
+    except:
+        return False
+    if len(cmds) > 0:  
+        print(f'Decoded cmds: {cmds}')
+        process_commands(**cmds)
+        return True
     return False
 
 def update_gamepad_axis_from_adc():
