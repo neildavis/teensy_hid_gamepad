@@ -30,6 +30,32 @@ development boards like
 
 It should work on any MCU with enough ADC & GPIO inputs and a working CircuitPython port including USB HID & CDC serial support. Some minor changes for board I/O pins etc. may be required.
 
+## Installation
+
+1. Ensure you have 
+[CircuitPython installed](https://learn.adafruit.com/welcome-to-circuitpython/installing-circuitpython)
+for your MCU board.
+2. Install the required
+[libraries](https://learn.adafruit.com/welcome-to-circuitpython/circuitpython-libraries)
+from the [latest Adafruit CircuitPython Bundle](https://circuitpython.org/libraries):
+
+    * `adafruit_hid`
+    * `adafruit_datetime`
+3. Copy all of the `*.py` files in the root of this repository to the root of your `CIRCUITPY` drive/volume.
+
+## Modifying Code
+
+If you need to modify any of the code, note that in [`code.py`](./code.py) the default 'auto-reload on save' functionality has been disabled by this line:
+
+```python
+# Disable auto reload
+supervisor.runtime.autoreload = False
+```
+
+To reload after saving, use the
+[CircuitPython serial console](https://learn.adafruit.com/welcome-to-circuitpython/kattni-connecting-to-the-serial-console) and press
+`CTRL+C` to interrupt the running program, and then `CTRL+D` to reload. Or just delete/comment out the line above.
+
 ## Physical Inputs
 
 Both analog & digital components can be used as inputs for the gamepad:
