@@ -14,7 +14,8 @@ support for volume up/down and power off.
 * [Programmable](#programmable-serial-interface)
 HID responses via USB CDC Serial comms using the same port as USB HID.
 * Single command [automated configuration](#special-configuration-commands) for
-[EmulationStation](https://github.com/Aloshi/EmulationStation) as used in e.g.
+[EmulationStation](https://github.com/Aloshi/EmulationStation) and
+[RetroArch](https://www.retroarch.com/) as used in e.g.
 [RetroPie](https://retropie.org.uk/).
 * Open and hackable.
 
@@ -215,5 +216,9 @@ In addition to the generic programmable serial interface described
 specific commands are available to automate particular softwares' configuration procedures.
 These commands are not 'compoundable' with the generic commands above and __must__ be entered alone.
 
-* `conf_es` : Performs a full input configuration sequence for
+* '`conf_es`' : Performs a full input configuration sequence for
 [EmulationStation](https://github.com/Aloshi/EmulationStation)
+(Main Menu -> Configure Input)
+* '`conf_ra`' : Performs a full input configuration sequence for
+[RetroArch](https://www.retroarch.com/)
+(Main Menu -> Settings -> Input -> Port N Controls -> Set All Controls)

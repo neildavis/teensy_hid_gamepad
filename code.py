@@ -103,7 +103,7 @@ def process_commands(**cmds):
     pressed_buttons.clear()
     gamepad_axes_values = {'x':0, 'y':0, 'z':0, 'r_z':0}
     pre_wait = 0.0
-    post_wait = 0.0
+    post_wait = 0.5
     hold_time = 0.5
     cc_vol = 0
     for input, value in cmds.items():
@@ -198,6 +198,9 @@ def read_cmd_from_serial() -> bool:
     if cdc_str == 'conf_es':
         configure_emulation_station()
         return True
+    if cdc_str == 'conf_ra':
+        configure_retroarch()
+        return True
     # decode 'name=value' pair commands. e.g cdc_str = "b1=0;b2=1; ... ;x=32767;y=-32767;z=0;r_z="
     try:
         cmds = dict(item.split("=") for item in cdc_str.split(";"))
@@ -274,7 +277,7 @@ def update_gamepad_buttons_from_digital_inputs():
 
 def configure_emulation_station():
     '''
-    Send the necessary commands to automate an Input Configuration in EmulationStation
+    Send the necessary commands to automate EmulationStation 'Configure Input'
     '''
     cmds = [
         { f'b{BUTTON_SELECT}'       :1, 'hold'  : 3, 'post' : 1 },   # Initial 'hold any button'
@@ -295,15 +298,48 @@ def configure_emulation_station():
         { f'b{BUTTON_THUMB_L}'      : 1, 'post' : 1 },
         { f'b{BUTTON_THUMB_R}'      : 1, 'post' : 1 },
         { 'y'                       : -32767, 'post' : 1 },
-        { 'y'                       : 32767, 'post' : 1 },
+        { 'y'                       :  32767, 'post' : 1 },
         { 'x'                       : -32767, 'post' : 1 },
-        { 'x'                       : 32767, 'post' : 1 },
+        { 'x'                       :  32767, 'post' : 1 },
         { 'r_z'                     : -32767, 'post' : 1 },
-        { 'r_z'                     : 32767, 'post' : 1 },
+        { 'r_z'                     :  32767, 'post' : 1 },
         { 'z'                       : -32767, 'post' : 1 },
-        { 'z'                       : 32767, 'post' : 1 },
+        { 'z'                       :  32767, 'post' : 1 },
         { f'b{BUTTON_SELECT}'       : 1, 'post' : 1 },              # Hotkey
         { f'b{BUTTON_EAST_A}'       : 1 },  # 'OK' / Finish
+      ]
+    for cmd in cmds:
+        process_commands(**cmd)
+
+def configure_retroarch():
+    '''
+    Send the necessary commands to automate RetroArch 'Set All Controls' configuration
+    '''
+    cmds = [
+        { f'b{BUTTON_SOUTH_B}'      : 1 },
+        { f'b{BUTTON_WEST_Y}'       : 1 },
+        { f'b{BUTTON_SELECT}'       : 1 },
+        { f'b{BUTTON_START}'        : 1 },
+        { f'b{BUTTON_HAT_UP}'       : 1 },
+        { f'b{BUTTON_HAT_DOWN}'     : 1 },
+        { f'b{BUTTON_HAT_LEFT}'     : 1 },
+        { f'b{BUTTON_HAT_RIGHT}'    : 1 },
+        { f'b{BUTTON_EAST_A}'       : 1 },
+        { f'b{BUTTON_NORTH_X}'      : 1 },
+        { f'b{BUTTON_SHOULDER_L}'   : 1 },
+        { f'b{BUTTON_SHOULDER_R}'   : 1 },
+        { f'b{BUTTON_TRIGGER_L}'    : 1 },
+        { f'b{BUTTON_TRIGGER_R}'    : 1 },
+        { f'b{BUTTON_THUMB_L}'      : 1 },
+        { f'b{BUTTON_THUMB_R}'      : 1 },
+        { 'x'                       :  32767 },
+        { 'x'                       : -32767 },
+        { 'y'                       :  32767 },
+        { 'y'                       : -32767 },
+        { 'z'                       :  32767 },
+        { 'z'                       : -32767 },
+        { 'r_z'                     :  32767 },
+        { 'r_z'                     : -32767 },
       ]
     for cmd in cmds:
         process_commands(**cmd)
