@@ -42,23 +42,23 @@ analog_ins = {
     'r_z'   : analogio.AnalogIn(board.A3),
 }
 
-# Enumerate all our digital io inputs as HID button IDs (1-16)
-BUTTON_WEST_Y       = 1
-BUTTON_SOUTH_B      = 2
-BUTTON_EAST_A       = 3
-BUTTON_NORTH_X      = 4
-BUTTON_SHOULDER_L   = 5
-BUTTON_SHOULDER_R   = 6
-BUTTON_TRIGGER_L    = 7
-BUTTON_TRIGGER_R    = 8
-BUTTON_SELECT       = 9
-BUTTON_START        = 10
-BUTTON_THUMB_L      = 11
-BUTTON_THUMB_R      = 12
-BUTTON_HAT_UP       = 13
-BUTTON_HAT_DOWN     = 14
-BUTTON_HAT_LEFT     = 15
-BUTTON_HAT_RIGHT    = 16
+# Enumerate all our digital io inputs as HID button IDs (0-15)
+BUTTON_WEST_Y       = 0
+BUTTON_SOUTH_B      = 1
+BUTTON_EAST_A       = 2
+BUTTON_NORTH_X      = 3
+BUTTON_SHOULDER_L   = 4
+BUTTON_SHOULDER_R   = 5
+BUTTON_TRIGGER_L    = 6
+BUTTON_TRIGGER_R    = 7
+BUTTON_SELECT       = 8
+BUTTON_START        = 9
+BUTTON_THUMB_L      = 10
+BUTTON_THUMB_R      = 11
+BUTTON_HAT_UP       = 12
+BUTTON_HAT_DOWN     = 13
+BUTTON_HAT_LEFT     = 14
+BUTTON_HAT_RIGHT    = 15
 BUTTON_MAX          = BUTTON_HAT_RIGHT
 
 # CC Volume handled by buttons outside gamepad button range
@@ -263,9 +263,9 @@ def update_gamepad_buttons_from_digital_inputs():
             continue
         btn_pressed = not dio.value
         if btn_pressed:
-            pressed_buttons.add(btn)
+            pressed_buttons.add(btn + 1)
         else:
-            pressed_buttons.discard(btn)
+            pressed_buttons.discard(btn + 1)
         if BUTTON_START == btn:
             # handle 'Hold start btn for shutdown'
             check_start_button_held_for_shutdown(btn_pressed)

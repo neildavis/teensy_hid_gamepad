@@ -108,23 +108,23 @@ Add, remove or change the board GPIO as required. The complete list of supported
 be seen in the code:
 
 ```python
-# Enumerate all our digital io inputs as HID button IDs (1-16)
-BUTTON_WEST_Y       = 1
-BUTTON_SOUTH_B      = 2
-BUTTON_EAST_A       = 3
-BUTTON_NORTH_X      = 4
-BUTTON_SHOULDER_L   = 5
-BUTTON_SHOULDER_R   = 6
-BUTTON_TRIGGER_L    = 7
-BUTTON_TRIGGER_R    = 8
-BUTTON_SELECT       = 9
-BUTTON_START        = 10
-BUTTON_THUMB_L      = 11
-BUTTON_THUMB_R      = 12
-BUTTON_HAT_UP       = 13
-BUTTON_HAT_DOWN     = 14
-BUTTON_HAT_LEFT     = 15
-BUTTON_HAT_RIGHT    = 16
+# Enumerate all our digital io inputs as HID button IDs (0-15)
+BUTTON_WEST_Y       = 0
+BUTTON_SOUTH_B      = 1
+BUTTON_EAST_A       = 2
+BUTTON_NORTH_X      = 3
+BUTTON_SHOULDER_L   = 4
+BUTTON_SHOULDER_R   = 5
+BUTTON_TRIGGER_L    = 6
+BUTTON_TRIGGER_R    = 7
+BUTTON_SELECT       = 8
+BUTTON_START        = 9
+BUTTON_THUMB_L      = 10
+BUTTON_THUMB_R      = 11
+BUTTON_HAT_UP       = 12
+BUTTON_HAT_DOWN     = 13
+BUTTON_HAT_LEFT     = 14
+BUTTON_HAT_RIGHT    = 15
 BUTTON_MAX          = BUTTON_HAT_RIGHT
 
 # CC Volume handled by buttons outside gamepad button range
@@ -136,7 +136,7 @@ The names should be self explanatory. Note that 'Hat' is USB HID speak for what 
 referred to as a
 ['D-Pad'](https://en.wikipedia.org/wiki/D-pad)
 
-The numeric values 1-16 are those reported as Gamepad button IDs in the USB HID reports.
+The numeric values 0-15 are those reported as Gamepad button IDs in the USB HID reports.
 These have been assigned by reverse engineering of a
 [Logitech F310](https://www.logitechg.com/en-in/products/gamepads/f310-gamepad.940-000112.html)
 controller - which mimics an Xbox 360 controller - using Gamepad test software such as
