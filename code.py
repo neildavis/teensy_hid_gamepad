@@ -222,8 +222,15 @@ def update_gamepad_axis_from_adc():
 
 def update_volume_controls():
     # Read Volume controls
-    volUpPressed = not button_dios[BUTTON_VOL_UP].value
-    volDownPressed = not button_dios[BUTTON_VOL_DOWN].value
+    volUpPressed = False
+    volDownPressed = False
+    # BUTTON_VOL_UP/BUTTON_VOL_DOWN might not be in button_dios so use get() instead of direct index
+    volUpDIO = button_dios.get(BUTTON_VOL_UP)
+    volDownDIO = button_dios.get(BUTTON_VOL_DOWN)
+    if None != volUpDIO:
+        volUpPressed = not volUpDIO.value
+    if None != volDownDIO:
+        volDownPressed = not volDownDIO.value
     # Send Consumer Control events for Volume
     if volDownPressed:
         cc.press(ConsumerControlCode.VOLUME_DECREMENT)
