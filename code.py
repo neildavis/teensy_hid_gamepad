@@ -34,14 +34,37 @@ gp = Gamepad(usb_hid.devices)
 # Consumer Control
 cc = ConsumerControl(usb_hid.devices)
 
-# Analog axes for joysticks:
-analog_ins = {
-    'x'     : analogio.AnalogIn(board.A0),
-    'y'     : analogio.AnalogIn(board.A1),
-    'z'     : analogio.AnalogIn(board.A2),
-    'r_z'   : analogio.AnalogIn(board.A3),
-}
+# Configure the board with available analog/digital inputs
 
+'''
+All available analog inputs on the board.
+Keys can be anything you like and are referenced by serial command interface. 
+Be sure to update default_joystick_pins below to match if you change them
+'''
+analog_ins = {
+    'a0'    : analogio.AnalogIn(board.A0),
+    'a1'    : analogio.AnalogIn(board.A1),
+    'a2'    : analogio.AnalogIn(board.A2),
+    'a3'    : analogio.AnalogIn(board.A3),
+}
+'''
+All available digital inputs on the board
+Keys can be anything you like and are referenced by serial command interface. 
+Be sure to update default_button_pins below to match if you change them
+'''
+digital_ins = {
+    'd0'    : DigitalInOut(board.GP0),
+    'd1'    : DigitalInOut(board.GP1),
+    'd2'    : DigitalInOut(board.GP2),
+    'd3'    : DigitalInOut(board.GP3),
+    'd4'    : DigitalInOut(board.GP4),
+    'd5'    : DigitalInOut(board.GP5),
+    'd6'    : DigitalInOut(board.GP6),
+    'd7'    : DigitalInOut(board.GP7),
+}
+for dio in digital_ins.values():
+    dio.switch_to_input(Pull.UP)
+    
 # Enumerate all our digital io inputs as HID button IDs (0-15)
 BUTTON_WEST_Y       = 0
 BUTTON_SOUTH_B      = 1
@@ -60,29 +83,61 @@ BUTTON_HAT_DOWN     = 13
 BUTTON_HAT_LEFT     = 14
 BUTTON_HAT_RIGHT    = 15
 BUTTON_MAX          = BUTTON_HAT_RIGHT
-
 # CC Volume handled by buttons outside gamepad button range
 BUTTON_VOL_UP       = 20
 BUTTON_VOL_DOWN     = 21
 
-# All of our buttons are digital IO - Pulled up and grounded when pressed. Map to GPIO pins here:
-button_pins = {
-    BUTTON_VOL_UP   : board.GP0,
-    BUTTON_VOL_DOWN : board.GP1,
-    BUTTON_START    : board.GP2,
-    BUTTON_SELECT   : board.GP3,
-    BUTTON_SOUTH_B  : board.GP4,
-    BUTTON_WEST_Y   : board.GP5,
-    BUTTON_EAST_A   : board.GP6,
-    BUTTON_NORTH_X  : board.GP7,
+# These are the default mappings of buttons to digital inputs
+default_button_pins = {
+    BUTTON_VOL_UP   : 'd0',
+    BUTTON_VOL_DOWN : 'd1',
+    BUTTON_START    : 'd2',
+    BUTTON_SELECT   : 'd3',
+    BUTTON_SOUTH_B  : 'd4',
+    BUTTON_WEST_Y   : 'd5',
+    BUTTON_EAST_A   : 'd6',
+    BUTTON_NORTH_X  : 'd7',
+}
+# These are the default mappings of analog axes for joysticks:
+default_joystick_pins = {
+    'x'     : 'a0',
+    'y'     : 'a1',
+    'z'     : 'a2',
+    'r_z'   : 'a3',
 }
 
-# populate map of DigitalInOut that we poll
+# The ACTIVE set of joystick inputs: gamepad axis -> AnalogIo
+joystick_ais = {}
+
+def set_joystick_mappings(js_maps):
+    '''
+    Modify the ACTIVE set of joystick inputs
+    '''
+    global joystick_ais
+    for axis, ai_key in js_maps.items():
+        # Look up the AnalogIn for the key matching axis
+        analog_in = analog_ins.get(ai_key)
+        if None != analog_in:
+            joystick_ais[axis] = analog_in
+
+# The ACTIVE set of button inputs: button ID -> DigitalInOut
 button_dios = {}
-for btn, pin in button_pins.items():
-    dio = DigitalInOut(pin)
-    dio.switch_to_input(Pull.UP)
-    button_dios[btn] = dio
+
+def set_button_mappings(but_maps):
+    '''
+    Modify the ACTIVE set of button inputs
+    '''
+    global button_dios
+    for btn, di_key in but_maps.items():
+        # Look up the DigitalInOut for the key matching btn
+        dio = digital_ins.get(di_key)
+        if None != dio:
+            button_dios[btn] = dio
+
+# Set the default joystick input mappings
+set_joystick_mappings(default_joystick_pins)
+# Set the default button input mappings
+set_button_mappings(default_button_pins)
 
 # Gamepad pressed buttons
 pressed_buttons = set()
@@ -215,7 +270,7 @@ def read_cmd_from_serial() -> bool:
 def update_gamepad_axis_from_adc():
     # Read analog inputs
     axes_values = {}
-    for axis, analog_in in analog_ins.items():
+    for axis, analog_in in joystick_ais.items():
         axes_values[axis] = range_map(analog_in.value, 0, 65535, -32767, 32767)
     # Update gamepad joystick axis values
     gp.move_joysticks(**axes_values)
@@ -287,7 +342,7 @@ def configure_emulation_station():
     Send the necessary commands to automate EmulationStation 'Configure Input'
     '''
     cmds = [
-        { f'b{BUTTON_SELECT}'       :1, 'hold'  : 3, 'post' : 1 },   # Initial 'hold any button'
+        { f'b{BUTTON_SELECT}'       : 1, 'hold'  : 3, 'post' : 1 },   # Initial 'hold any button'
         { f'b{BUTTON_HAT_UP}'       : 1, 'post' : 1 },
         { f'b{BUTTON_HAT_DOWN}'     : 1, 'post' : 1 },
         { f'b{BUTTON_HAT_LEFT}'     : 1, 'post' : 1 },

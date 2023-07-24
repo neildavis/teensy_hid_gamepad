@@ -64,19 +64,30 @@ Both analog & digital components can be used as inputs for the gamepad:
 
 By default, two gamepad analog joysticks (with two axes each) are enabled on four ADC inputs (`A0`-`A3`) as found on the
 [Pimoroni Tiny2040](https://shop.pimoroni.com/products/tiny-2040?variant=39560012234835) board.
-These can be changed and/or removed in this section of code in [`code.py`](./code.py):
+These can be changed and/or removed in these sections of code in [`code.py`](./code.py):
+
 
 ```python
-# Analog axes for joysticks:
-analog_ins = {
-    'x'     : analogio.AnalogIn(board.A0),
-    'y'     : analogio.AnalogIn(board.A1),
-    'z'     : analogio.AnalogIn(board.A2),
-    'r_z'   : analogio.AnalogIn(board.A3),
+# These are the default mappings of analog axes for joysticks:
+default_joystick_pins = {
+    'x'     : 'a0',
+    'y'     : 'a1',
+    'z'     : 'a2',
+    'r_z'   : 'a3',
 }
 ```
 
-The '`x`' & '`y`' axes correspond to the _left_ analog joystick, whilst '`z`' & '`r_z`' correspond to the _right_ analog joystick. 
+The '`x`' & '`y`' axes correspond to the _left_ analog joystick, whilst '`z`' & '`r_z`' correspond to the _right_ analog joystick. The values are keys into the available analog axes defined in `analog_ins`. 
+You are free to modify these but just be sure they match up in both dictionaries:
+
+```python
+analog_ins = {
+    'a0'    : analogio.AnalogIn(board.A0),
+    'a1'    : analogio.AnalogIn(board.A1),
+    'a2'    : analogio.AnalogIn(board.A2),
+    'a3'    : analogio.AnalogIn(board.A3),
+}
+```
 
 Remove unwanted entries and/or map to alternative inputs on your board as required.
 
@@ -88,24 +99,40 @@ By default, since the
 [Pimoroni Tiny2040](https://shop.pimoroni.com/products/tiny-2040?variant=39560012234835)
 board has only 8 GPIO left (excluding the pins used as ADC for the analog joysticks)
 only 6 gamepad buttons and 2 volume control buttons are mapped.
-These can be changed and/or removed in this section of code in [`code.py`](./code.py):
+These can be changed and/or removed in these sections of code in [`code.py`](./code.py):
 
 ```python
-# All of our buttons are digital IO - Pulled up and grounded when pressed. Map to GPIO pins here:
-button_pins = {
-    BUTTON_VOL_UP   : board.GP0,
-    BUTTON_VOL_DOWN : board.GP1,
-    BUTTON_START    : board.GP2,
-    BUTTON_SELECT   : board.GP3,
-    BUTTON_SOUTH_B  : board.GP4,
-    BUTTON_WEST_Y   : board.GP5,
-    BUTTON_EAST_A   : board.GP6,
-    BUTTON_NORTH_X  : board.GP7,
+# These are the default mappings of buttons to digital inputs
+default_button_pins = {
+    BUTTON_VOL_UP   : 'd0',
+    BUTTON_VOL_DOWN : 'd1',
+    BUTTON_START    : 'd2',
+    BUTTON_SELECT   : 'd3',
+    BUTTON_SOUTH_B  : 'd4',
+    BUTTON_WEST_Y   : 'd5',
+    BUTTON_EAST_A   : 'd6',
+    BUTTON_NORTH_X  : 'd7',
 }
 ```
 
-Add, remove or change the board GPIO as required. The complete list of supported buttons can
-be seen in the code:
+The keys identify the gamepad button action.
+The values are keys into the available digital inputs defined in `digital_ins`. 
+You are free to modify these but just be sure they match up in both dictionaries:
+
+```python
+digital_ins = {
+    'd0'    : DigitalInOut(board.GP0),
+    'd1'    : DigitalInOut(board.GP1),
+    'd2'    : DigitalInOut(board.GP2),
+    'd3'    : DigitalInOut(board.GP3),
+    'd4'    : DigitalInOut(board.GP4),
+    'd5'    : DigitalInOut(board.GP5),
+    'd6'    : DigitalInOut(board.GP6),
+    'd7'    : DigitalInOut(board.GP7),
+}
+```
+
+The complete set of valid button keys can also be seen in `code.py`:
 
 ```python
 # Enumerate all our digital io inputs as HID button IDs (0-15)
@@ -126,7 +153,6 @@ BUTTON_HAT_DOWN     = 13
 BUTTON_HAT_LEFT     = 14
 BUTTON_HAT_RIGHT    = 15
 BUTTON_MAX          = BUTTON_HAT_RIGHT
-
 # CC Volume handled by buttons outside gamepad button range
 BUTTON_VOL_UP       = 20
 BUTTON_VOL_DOWN     = 21
