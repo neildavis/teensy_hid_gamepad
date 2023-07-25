@@ -8,7 +8,7 @@
 
 import board
 from digitalio import DigitalInOut, Pull
-import analogio
+from analogio import AnalogIn
 import usb_hid
 import usb_cdc
 from time import sleep
@@ -42,11 +42,11 @@ Keys can be anything you like except core commands, [btn{N}, x, y, z, r_z, v, ho
 Keys are referenced by serial command interface. 
 Be sure to update default_joystick_pins below to match if you change them
 '''
-analog_ins = {
-    'a0'    : analogio.AnalogIn(board.A0),
-    'a1'    : analogio.AnalogIn(board.A1),
-    'a2'    : analogio.AnalogIn(board.A2),
-    'a3'    : analogio.AnalogIn(board.A3),
+analog_ins: dict[str, AnalogIn] = {
+    'a0'    : AnalogIn(board.A0),
+    'a1'    : AnalogIn(board.A1),
+    'a2'    : AnalogIn(board.A2),
+    'a3'    : AnalogIn(board.A3),
 }
 '''
 All available digital inputs on the board
@@ -54,7 +54,7 @@ Keys can be anything you like
 Keys are referenced by serial command interface. 
 Be sure to update default_button_pins below to match if you change them
 '''
-digital_ins = {
+digital_ins: dict[str, DigitalInOut] = {
     'd0'    : DigitalInOut(board.GP0),
     'd1'    : DigitalInOut(board.GP1),
     'd2'    : DigitalInOut(board.GP2),
@@ -90,7 +90,7 @@ BUTTON_VOL_UP       = 20
 BUTTON_VOL_DOWN     = 21
 
 # These are the default mappings of buttons to digital inputs
-default_button_pins = {
+default_button_pins: dict[int, str] = {
     BUTTON_VOL_UP   : 'd0',
     BUTTON_VOL_DOWN : 'd1',
     BUTTON_START    : 'd2',
@@ -101,7 +101,7 @@ default_button_pins = {
     BUTTON_NORTH_X  : 'd7',
 }
 # These are the default mappings of analog axes for joysticks:
-default_joystick_pins = {
+default_joystick_pins: dict[str, str] = {
     'x'     : 'a0',
     'y'     : 'a1',
     'z'     : 'a2',
@@ -109,9 +109,9 @@ default_joystick_pins = {
 }
 
 # The ACTIVE set of joystick inputs: gamepad axis -> AnalogIo
-joystick_ais = {}
+joystick_ais: dict[str, AnalogIn] = {}
 
-def set_joystick_mappings(js_maps):
+def set_joystick_mappings(js_maps: dict[str, str]) -> None:
     '''
     Modify the ACTIVE set of joystick inputs
     '''
@@ -123,9 +123,9 @@ def set_joystick_mappings(js_maps):
             joystick_ais[axis] = analog_in
 
 # The ACTIVE set of button inputs: button ID -> DigitalInOut
-button_dios = {}
+button_dios: dict[int, DigitalInOut] = {}
 
-def set_button_mappings(but_maps):
+def set_button_mappings(but_maps: dict[int, str]) -> None:
     '''
     Modify the ACTIVE set of button inputs
     '''
@@ -143,6 +143,8 @@ set_button_mappings(default_button_pins)
 
 # Gamepad pressed buttons
 pressed_buttons = set()
+# Gamepad joystick axes values
+gamepad_axes_values = {'x':0, 'y':0, 'z':0, 'r_z':0}
 
 # Clear any existing pending serial data
 usb_cdc.data.reset_input_buffer()
@@ -155,38 +157,91 @@ def range_map(x, in_min, in_max, out_min, out_max):
 def clamp(n, minn, maxn):
     return max(min(maxn, n), minn)
 
-def process_commands(**cmds):
+def handle_button_input_command(btn:str, value:str):
     global pressed_buttons
+    try:
+        butIdx = int(btn)
+        value = int(value)
+        if value > 0:
+            pressed_buttons.add(butIdx)
+    except Exception as e:
+        print(f'Error reading button command ({btn}={value}): {e}')
+
+def handle_joystick_axis_input_command(axis:str, value:str):
+    global gamepad_axes_values
+    try:
+        value = int(value)
+        gamepad_axes_values[axis] = value
+    except Exception as e:
+        print(f'Error reading joystick axes command ({axis}={value}): {e}')
+
+def handle_button_mapping_command(digital_in:str, btn_str:str) -> None:
+    global digital_ins, button_dios
+    btn = 0
+    try:
+        btn = int(btn_str)
+    except ValueError as ve:
+        print(f'Error mapping button command ({digital_in}={btn_str}): {ve}')
+        return
+    dio = digital_ins.get(digital_in)
+    if None != dio:
+        button_dios[btn] = dio
+
+def handle_joystick_mapping_command(analog_in:str, axis:str) -> None:
+    global analog_ins, joystick_ais
+    if axis in ['x', 'y', 'z', 'r_z']:
+        ai = analog_ins.get(analog_in)
+        if None != ai:
+            joystick_ais[axis] = ai
+
+def parse_int_value(value:str) -> int:
+    try:
+        value = int(value)
+    except Exception as e:
+        print(e)
+        return 0
+    return value
+
+def parse_float_value(value:str) -> float:
+    try:
+        value = float(value)
+    except Exception as e:
+        print(e)
+        return 0.0
+    return value
+
+
+def process_commands(**cmds):
+    global pressed_buttons, gamepad_axes_values
+    global digital_ins, analog_ins
     pressed_buttons.clear()
-    gamepad_axes_values = {'x':0, 'y':0, 'z':0, 'r_z':0}
     pre_wait = 0.0
     post_wait = 0.5
     hold_time = 0.5
     cc_vol = 0
     for input, value in cmds.items():
-        try:
-            value = int(value)
-        except:
-            continue
         if len(input) > 3 and input[0:3] == 'btn':
             # This is a digital button input value, i.e. btn1/btn2/ ... /btn15/btn16
-            if int(value) > 0:
-                pressed_buttons.add(int(input[3:]))
+            handle_button_input_command(input[3:], value)
         elif input in ['x', 'y', 'z', 'r_z']:
             # This is an analog input axis value, i.e. x/y/z/r_x
-            gamepad_axes_values[input] = value
+            handle_joystick_axis_input_command(input, value)
+        elif input in analog_ins.keys():
+            handle_joystick_mapping_command(input, value)
+        elif input in digital_ins.keys():
+            handle_button_mapping_command(input, value)
         elif input == 'vol':
             # This is a volume value, +ve or -ve
-            cc_vol = value
+            cc_vol = parse_int_value(value)
         elif input == 'hold':
             # Hold control(s) for a period of time
-            hold_time = value
+            hold_time = parse_float_value(value)
         elif input == 'pre':
             # Wait for a period of time BEFORE changing any values
-            pre_wait = value
+            pre_wait = parse_float_value(value)
         elif input == 'post':
             # Wait for a period of time AFTER changing (and resetting) any values
-            post_wait = value
+            post_wait = parse_float_value(value)
     released_buttons = set(range(1,17)).difference(pressed_buttons)
 
     # pre-wait period

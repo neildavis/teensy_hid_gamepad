@@ -13,6 +13,8 @@ with the following features:
 support for volume up/down and power off.
 * [Programmable](#programmable-serial-interface)
 HID responses via USB CDC Serial comms using the same port as USB HID.
+* [Programmable](#programmable-serial-interface)
+dynamic re-mapping of digital inputs to buttons and analog inputs to joystick axis
 * Single command [automated configuration](#special-configuration-commands) for
 [EmulationStation](https://github.com/Aloshi/EmulationStation) and
 [RetroArch](https://www.retroarch.com/) as used in e.g.
@@ -32,7 +34,7 @@ It should work on any MCU with enough ADC & GPIO inputs and a working CircuitPyt
 
 ## Installation
 
-1. Ensure you have 
+1. Ensure you have
 [CircuitPython installed](https://learn.adafruit.com/welcome-to-circuitpython/installing-circuitpython)
 for your MCU board.
 2. Install the required
@@ -66,7 +68,6 @@ By default, two gamepad analog joysticks (with two axes each) are enabled on fou
 [Pimoroni Tiny2040](https://shop.pimoroni.com/products/tiny-2040?variant=39560012234835) board.
 These can be changed and/or removed in these sections of code in [`code.py`](./code.py):
 
-
 ```python
 # These are the default mappings of analog axes for joysticks:
 default_joystick_pins = {
@@ -77,7 +78,7 @@ default_joystick_pins = {
 }
 ```
 
-The '`x`' & '`y`' axes correspond to the _left_ analog joystick, whilst '`z`' & '`r_z`' correspond to the _right_ analog joystick. The values are keys into the available analog axes defined in `analog_ins`. 
+The '`x`' & '`y`' axes correspond to the _left_ analog joystick, whilst '`z`' & '`r_z`' correspond to the _right_ analog joystick. The values are keys into the available analog axes defined in `analog_ins`.
 You are free to modify these but just be sure they match up in both dictionaries:
 
 ```python
@@ -116,7 +117,7 @@ default_button_pins = {
 ```
 
 The keys identify the gamepad button action.
-The values are keys into the available digital inputs defined in `digital_ins`. 
+The values are keys into the available digital inputs defined in `digital_ins`.
 You are free to modify these but just be sure they match up in both dictionaries:
 
 ```python
@@ -242,24 +243,29 @@ The interface accepts commands as a line of text terminated by a CR (`0xD`) or L
 Each line may contain an arbitrary number of _`name=value`_ pairs separated by a semi-colon.
 The available commands are listed in the following table:
 
-| Command Name (e.g.) | Valid Values | Description |
+| Command Name (e.g.) | Valid Values (e.g.)| Description |
 |-|-|-|
 | `btn{N}` (e.g. `btn1`) | `1` | Press (and release) button `N`
-| `x`, `y`, `z`, `r_z` | `-16327` - `16327` | Joystick axes analog values
+| `x`, `y`, `z`, `r_z` | `-16327` - `16327` | Set joystick axes analog values
 | `vol` | `-1,0,1` | Volume. `1` increments, `-1` decrements |
-| `hold` | +ve integer values | Time in seconds to hold the controls at specified values |
-| `pre` | +ve integer values | Time in seconds to wait ___before___ synthesizing the inputs |
-| `post` | +ve integer values | Time in seconds to wait ___after___ synthesizing the inputs |
+| `{digital input}` (e.g. `d0`) | `{button id}` (e.g. `9` == '`Start`') | [Re]Map a digital input to a button ID |
+| `{analog input}` (e.g. `a0`) | `{joystick axis}` (e.g. `r_z`) | [Re]Map an analog input to a joystick axis |
+| `hold` | +ve floating point values | Time in seconds to hold the controls at specified values |
+| `pre` | +ve floating point values | Time in seconds to wait ___before___ synthesizing the inputs |
+| `post` | +ve floating point values | Time in seconds to wait ___after___ synthesizing the inputs |
 
 By default, the specified input values are __held for half a second__. This can be changed by use of
 the `hold` command.
 
 #### Examples
 
-* '`btn1=1;btn5=1;x=-16327`' : Press buttons 1 & 5 and set left analog stick x-axis full left.
-* '`r_z=8000`' : Move right analog joystick y-axis approx half way down. 
-* '`btn=1;hold=5`' : Press button 3 and hold it for five seconds
-* '`vol=-1;post=2`' : Decrement volume and wait for 2 seconds before processing any other events or commands.
+| Command string | Actions |
+|-|-|
+|'`btn1=1;btn5=1;x=-16327`' | Press buttons 1 & 5 and set left analog stick x-axis full left. |
+|'`r_z=8000`' | Move right analog joystick y-axis approx half way down. |
+|'`btn=1;hold=5`' | Press button 3 and hold it for five seconds. |
+|'`vol=-1;post=2.5`' | Decrement volume and wait for 2.5 seconds before processing any other events or commands. |
+|'`d0=9;a3=y`' | Remap digital input `d0` to button number `9` (`Start`) and remap analog input `a3` to left joystick `y` axis. |
 
 ### Special Configuration Commands
 
