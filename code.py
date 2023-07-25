@@ -38,7 +38,8 @@ cc = ConsumerControl(usb_hid.devices)
 
 '''
 All available analog inputs on the board.
-Keys can be anything you like and are referenced by serial command interface. 
+Keys can be anything you like except core commands, [btn{N}, x, y, z, r_z, v, hold, pre, post]
+Keys are referenced by serial command interface. 
 Be sure to update default_joystick_pins below to match if you change them
 '''
 analog_ins = {
@@ -49,7 +50,8 @@ analog_ins = {
 }
 '''
 All available digital inputs on the board
-Keys can be anything you like and are referenced by serial command interface. 
+Keys can be anything you like
+Keys are referenced by serial command interface. 
 Be sure to update default_button_pins below to match if you change them
 '''
 digital_ins = {
@@ -166,14 +168,14 @@ def process_commands(**cmds):
             value = int(value)
         except:
             continue
-        if input[0] == 'b':
-            # This is a digital button input value, i.e. b1/b2/ ... /b15/b16
+        if len(input) > 3 and input[0:3] == 'btn':
+            # This is a digital button input value, i.e. btn1/btn2/ ... /btn15/btn16
             if int(value) > 0:
-                pressed_buttons.add(int(input[1:]))
+                pressed_buttons.add(int(input[3:]))
         elif input in ['x', 'y', 'z', 'r_z']:
             # This is an analog input axis value, i.e. x/y/z/r_x
             gamepad_axes_values[input] = value
-        elif input == 'v':
+        elif input == 'vol':
             # This is a volume value, +ve or -ve
             cc_vol = value
         elif input == 'hold':
@@ -342,23 +344,23 @@ def configure_emulation_station():
     Send the necessary commands to automate EmulationStation 'Configure Input'
     '''
     cmds = [
-        { f'b{BUTTON_SELECT}'       : 1, 'hold'  : 3, 'post' : 1 },   # Initial 'hold any button'
-        { f'b{BUTTON_HAT_UP}'       : 1, 'post' : 1 },
-        { f'b{BUTTON_HAT_DOWN}'     : 1, 'post' : 1 },
-        { f'b{BUTTON_HAT_LEFT}'     : 1, 'post' : 1 },
-        { f'b{BUTTON_HAT_RIGHT}'    : 1, 'post' : 1 },
-        { f'b{BUTTON_START}'        : 1, 'post' : 1 },
-        { f'b{BUTTON_SELECT}'       : 1, 'post' : 1 },
-        { f'b{BUTTON_EAST_A}'       : 1, 'post' : 1 },
-        { f'b{BUTTON_SOUTH_B}'      : 1, 'post' : 1 },
-        { f'b{BUTTON_NORTH_X}'      : 1, 'post' : 1 },
-        { f'b{BUTTON_WEST_Y}'       : 1, 'post' : 1 },
-        { f'b{BUTTON_SHOULDER_L}'   : 1, 'post' : 1 },
-        { f'b{BUTTON_SHOULDER_R}'   : 1, 'post' : 1 },
-        { f'b{BUTTON_TRIGGER_L}'    : 1, 'post' : 1 },
-        { f'b{BUTTON_TRIGGER_R}'    : 1, 'post' : 1 },
-        { f'b{BUTTON_THUMB_L}'      : 1, 'post' : 1 },
-        { f'b{BUTTON_THUMB_R}'      : 1, 'post' : 1 },
+        { f'btn{BUTTON_SELECT}'       : 1, 'hold'  : 3, 'post' : 1 },   # Initial 'hold any button'
+        { f'btn{BUTTON_HAT_UP}'       : 1, 'post' : 1 },
+        { f'btn{BUTTON_HAT_DOWN}'     : 1, 'post' : 1 },
+        { f'btn{BUTTON_HAT_LEFT}'     : 1, 'post' : 1 },
+        { f'btn{BUTTON_HAT_RIGHT}'    : 1, 'post' : 1 },
+        { f'btn{BUTTON_START}'        : 1, 'post' : 1 },
+        { f'btn{BUTTON_SELECT}'       : 1, 'post' : 1 },
+        { f'btn{BUTTON_EAST_A}'       : 1, 'post' : 1 },
+        { f'btn{BUTTON_SOUTH_B}'      : 1, 'post' : 1 },
+        { f'btn{BUTTON_NORTH_X}'      : 1, 'post' : 1 },
+        { f'btn{BUTTON_WEST_Y}'       : 1, 'post' : 1 },
+        { f'btn{BUTTON_SHOULDER_L}'   : 1, 'post' : 1 },
+        { f'btn{BUTTON_SHOULDER_R}'   : 1, 'post' : 1 },
+        { f'btn{BUTTON_TRIGGER_L}'    : 1, 'post' : 1 },
+        { f'btn{BUTTON_TRIGGER_R}'    : 1, 'post' : 1 },
+        { f'btn{BUTTON_THUMB_L}'      : 1, 'post' : 1 },
+        { f'btn{BUTTON_THUMB_R}'      : 1, 'post' : 1 },
         { 'y'                       : -32767, 'post' : 1 },
         { 'y'                       :  32767, 'post' : 1 },
         { 'x'                       : -32767, 'post' : 1 },
@@ -367,8 +369,8 @@ def configure_emulation_station():
         { 'r_z'                     :  32767, 'post' : 1 },
         { 'z'                       : -32767, 'post' : 1 },
         { 'z'                       :  32767, 'post' : 1 },
-        { f'b{BUTTON_SELECT}'       : 1, 'post' : 1 },              # Hotkey
-        { f'b{BUTTON_EAST_A}'       : 1 },  # 'OK' / Finish
+        { f'btn{BUTTON_SELECT}'       : 1, 'post' : 1 },              # Hotkey
+        { f'btn{BUTTON_EAST_A}'       : 1 },  # 'OK' / Finish
       ]
     for cmd in cmds:
         process_commands(**cmd)
@@ -378,22 +380,22 @@ def configure_retroarch():
     Send the necessary commands to automate RetroArch 'Set All Controls' configuration
     '''
     cmds = [
-        { f'b{BUTTON_SOUTH_B}'      : 1 },
-        { f'b{BUTTON_WEST_Y}'       : 1 },
-        { f'b{BUTTON_SELECT}'       : 1 },
-        { f'b{BUTTON_START}'        : 1 },
-        { f'b{BUTTON_HAT_UP}'       : 1 },
-        { f'b{BUTTON_HAT_DOWN}'     : 1 },
-        { f'b{BUTTON_HAT_LEFT}'     : 1 },
-        { f'b{BUTTON_HAT_RIGHT}'    : 1 },
-        { f'b{BUTTON_EAST_A}'       : 1 },
-        { f'b{BUTTON_NORTH_X}'      : 1 },
-        { f'b{BUTTON_SHOULDER_L}'   : 1 },
-        { f'b{BUTTON_SHOULDER_R}'   : 1 },
-        { f'b{BUTTON_TRIGGER_L}'    : 1 },
-        { f'b{BUTTON_TRIGGER_R}'    : 1 },
-        { f'b{BUTTON_THUMB_L}'      : 1 },
-        { f'b{BUTTON_THUMB_R}'      : 1 },
+        { f'btn{BUTTON_SOUTH_B}'      : 1 },
+        { f'btn{BUTTON_WEST_Y}'       : 1 },
+        { f'btn{BUTTON_SELECT}'       : 1 },
+        { f'btn{BUTTON_START}'        : 1 },
+        { f'btn{BUTTON_HAT_UP}'       : 1 },
+        { f'btn{BUTTON_HAT_DOWN}'     : 1 },
+        { f'btn{BUTTON_HAT_LEFT}'     : 1 },
+        { f'btn{BUTTON_HAT_RIGHT}'    : 1 },
+        { f'btn{BUTTON_EAST_A}'       : 1 },
+        { f'btn{BUTTON_NORTH_X}'      : 1 },
+        { f'btn{BUTTON_SHOULDER_L}'   : 1 },
+        { f'btn{BUTTON_SHOULDER_R}'   : 1 },
+        { f'btn{BUTTON_TRIGGER_L}'    : 1 },
+        { f'btn{BUTTON_TRIGGER_R}'    : 1 },
+        { f'btn{BUTTON_THUMB_L}'      : 1 },
+        { f'btn{BUTTON_THUMB_R}'      : 1 },
         { 'x'                       :  32767 },
         { 'x'                       : -32767 },
         { 'y'                       :  32767 },

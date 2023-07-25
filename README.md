@@ -244,9 +244,9 @@ The available commands are listed in the following table:
 
 | Command Name (e.g.) | Valid Values | Description |
 |-|-|-|
-| `b{N}` (e.g. `b1`) | `1` | Press (and release) button `N`
+| `btn{N}` (e.g. `btn1`) | `1` | Press (and release) button `N`
 | `x`, `y`, `z`, `r_z` | `-16327` - `16327` | Joystick axes analog values
-| `v` | `-1,0,1` | Volume. `1` increments, `-1` decrements |
+| `vol` | `-1,0,1` | Volume. `1` increments, `-1` decrements |
 | `hold` | +ve integer values | Time in seconds to hold the controls at specified values |
 | `pre` | +ve integer values | Time in seconds to wait ___before___ synthesizing the inputs |
 | `post` | +ve integer values | Time in seconds to wait ___after___ synthesizing the inputs |
@@ -256,10 +256,10 @@ the `hold` command.
 
 #### Examples
 
-* '`b1=1;b5=1;x=-16327`' : Press buttons 1 & 5 and set left analog stick x-axis full left.
+* '`btn1=1;btn5=1;x=-16327`' : Press buttons 1 & 5 and set left analog stick x-axis full left.
 * '`r_z=8000`' : Move right analog joystick y-axis approx half way down. 
-* '`b3=1;hold=5`' : Press button 3 and hold it for five seconds
-* '`v=-1;post=2`' : Decrement volume and wait for 2 seconds before processing any other events or commands.
+* '`btn=1;hold=5`' : Press button 3 and hold it for five seconds
+* '`vol=-1;post=2`' : Decrement volume and wait for 2 seconds before processing any other events or commands.
 
 ### Special Configuration Commands
 
