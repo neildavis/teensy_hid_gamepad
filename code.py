@@ -163,7 +163,7 @@ def handle_button_input_command(btn:str, value:str):
         butIdx = int(btn)
         value = int(value)
         if value > 0:
-            pressed_buttons.add(butIdx)
+            pressed_buttons.add(butIdx + 1)
     except Exception as e:
         print(f'Error reading button command ({btn}={value}): {e}')
 
@@ -264,7 +264,8 @@ def process_commands(**cmds):
     sleep(hold_time)
     pressed_buttons.clear()
     gp.release_all_buttons()
-    gp.move_joysticks(0,0,0,0)
+    gamepad_axes_values = {'x':0, 'y':0, 'z':0, 'r_z':0}
+    gp.move_joysticks(**gamepad_axes_values) 
     cc.release()
     # post-wait period
     sleep(post_wait)
