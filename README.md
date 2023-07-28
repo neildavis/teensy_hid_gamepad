@@ -10,7 +10,7 @@ with the following features:
 * Up to 4 [analog inputs](#analog-inputs)
 (16-bit ADC) can be attached and mapped to two USB HID Gamepad joystick axes.
 * [USB _Consumer Control_](#usb-consumer-control)
-support for volume up/down and power off.
+support for volume up/down/mute and power off.
 * [Programmable](#programmable-serial-interface)
 HID responses via USB CDC Serial comms using the same port as USB HID.
 * [Programmable](#programmable-serial-interface)
@@ -94,7 +94,7 @@ Remove unwanted entries and/or map to alternative inputs on your board as requir
 
 ### Digital Inputs
 
-Up to 16 buttons and 2 volume controls can be mapped to GPIO inputs on the board.
+Up to 16 buttons and 3 volume controls can be mapped to GPIO inputs on the board.
 
 By default, since the
 [Pimoroni Tiny2040](https://shop.pimoroni.com/products/tiny-2040?variant=39560012234835)
@@ -157,6 +157,7 @@ BUTTON_MAX          = BUTTON_HAT_RIGHT
 # CC Volume handled by buttons outside gamepad button range
 BUTTON_VOL_UP       = 20
 BUTTON_VOL_DOWN     = 21
+BUTTON_VOL_MUTE     = 22
 ```
 
 The names should be self explanatory. Note that 'Hat' is USB HID speak for what is commonly
@@ -180,6 +181,7 @@ are supported. These are currently limited to:
 
 * Volume Up (Increment)
 * Volume Down (Decrement)
+* Volume Mute (Toggle)
 * Power Off
 
 The volume commands can be mapped to digital GPIO inputs as described [above](#digital-inputs).
@@ -247,7 +249,7 @@ The available commands are listed in the following table:
 |-|-|-|
 | `btn{N}` (e.g. `btn1`) | `1` | Press (and release) button `N`
 | `x`, `y`, `z`, `r_z` | `-16327` - `16327` | Set joystick axes analog values
-| `vol` | `-1,0,1` | Volume. `1` increments, `-1` decrements |
+| `vol` | `-1,0,1` | Volume. `1` increments, `-1` decrements, `0` toggles 'mute' |
 | `{digital input}` (e.g. `d0`) | `{button id}` (e.g. `9` == '`Start`') | [Re]Map a digital input to a button ID |
 | `{analog input}` (e.g. `a0`) | `{joystick axis}` (e.g. `r_z`) | [Re]Map an analog input to a joystick axis |
 | `hold` | +ve floating point values | Time in seconds to hold the controls at specified values |

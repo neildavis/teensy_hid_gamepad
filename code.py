@@ -88,6 +88,7 @@ BUTTON_MAX          = BUTTON_HAT_RIGHT
 # CC Volume handled by buttons outside gamepad button range
 BUTTON_VOL_UP       = 20
 BUTTON_VOL_DOWN     = 21
+BUTTON_VOL_MUTE     = 22
 
 # These are the default mappings of buttons to digital inputs
 default_button_pins: dict[int, str] = {
@@ -219,6 +220,7 @@ def process_commands(**cmds):
     post_wait = 0.5
     hold_time = 0.5
     cc_vol = 0
+    cc_mute_toggle = 0
     for input, value in cmds.items():
         if len(input) > 3 and input[0:3] == 'btn':
             # This is a digital button input value, i.e. btn1/btn2/ ... /btn15/btn16
@@ -231,8 +233,11 @@ def process_commands(**cmds):
         elif input in digital_ins.keys():
             handle_button_mapping_command(input, value)
         elif input == 'vol':
-            # This is a volume value, +ve or -ve
-            cc_vol = parse_int_value(value)
+            # This is a volume value, +ve, -ve or 'mute'
+            if value == 'mute':
+                cc_mute_toggle = True
+            else:
+                cc_vol = parse_int_value(value)
         elif input == 'hold':
             # Hold control(s) for a period of time
             hold_time = parse_float_value(value)
@@ -256,7 +261,9 @@ def process_commands(**cmds):
     # update gamepad axes
     gp.move_joysticks(**gamepad_axes_values) 
     # update CC volume
-    if cc_vol > 0:
+    if cc_mute_toggle:
+        cc.press(ConsumerControlCode.MUTE)
+    elif cc_vol > 0:
         cc.press(ConsumerControlCode.VOLUME_INCREMENT)
     elif cc_vol < 0:
         cc.press(ConsumerControlCode.VOLUME_DECREMENT)
@@ -337,18 +344,24 @@ def update_volume_controls():
     # Read Volume controls
     volUpPressed = False
     volDownPressed = False
+    volMutePressed = False
     # BUTTON_VOL_UP/BUTTON_VOL_DOWN might not be in button_dios so use get() instead of direct index
     volUpDIO = button_dios.get(BUTTON_VOL_UP)
     volDownDIO = button_dios.get(BUTTON_VOL_DOWN)
+    volMuteDIO = button_dios.get(BUTTON_VOL_MUTE)
     if None != volUpDIO:
         volUpPressed = not volUpDIO.value
     if None != volDownDIO:
         volDownPressed = not volDownDIO.value
+    if None != volMuteDIO:
+        volMutePressed = not volMuteDIO.value
     # Send Consumer Control events for Volume
     if volDownPressed:
         cc.press(ConsumerControlCode.VOLUME_DECREMENT)
     elif volUpPressed:
         cc.press(ConsumerControlCode.VOLUME_INCREMENT)
+    elif volMutePressed:
+        cc.press(ConsumerControlCode.MUTE)
     else:
         cc.release()
 
