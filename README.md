@@ -66,7 +66,7 @@ Both analog & digital components can be used as inputs for the gamepad:
 
 By default, two gamepad analog joysticks (with two axes each) are enabled on four ADC inputs (`A0`-`A3`) as found on the
 [Pimoroni Tiny2040](https://shop.pimoroni.com/products/tiny-2040?variant=39560012234835) board.
-These can be changed and/or removed in these sections of code in [`code.py`](./code.py):
+These can be changed and/or removed in these sections of code in [`config.py`](./config.py):
 
 ```python
 # These are the default mappings of analog axes for joysticks:
@@ -100,7 +100,7 @@ By default, since the
 [Pimoroni Tiny2040](https://shop.pimoroni.com/products/tiny-2040?variant=39560012234835)
 board has only 8 GPIO left (excluding the pins used as ADC for the analog joysticks)
 only 6 gamepad buttons and 2 volume control buttons are mapped.
-These can be changed and/or removed in these sections of code in [`code.py`](./code.py):
+These can be changed and/or removed in these sections of code in [`config.py`](./config.py):
 
 ```python
 # These are the default mappings of buttons to digital inputs
@@ -133,7 +133,7 @@ digital_ins = {
 }
 ```
 
-The complete set of valid button keys can also be seen in `code.py`:
+The complete set of valid button keys can also be seen in [`config.py`](./config.py):
 
 ```python
 # Enumerate all our digital io inputs as HID button IDs (0-15)
@@ -186,7 +186,7 @@ are supported. These are currently limited to:
 
 The volume commands can be mapped to digital GPIO inputs as described [above](#digital-inputs).
 The 'power off' functionality is achieved by holding the 'start' button for a period of time
-as determined in the code by this constant:
+as determined in the code by this constant in [`config.py`](./config.py):
 
 ```python
 # Holding 'Start' button for this period will send a Power Off command
