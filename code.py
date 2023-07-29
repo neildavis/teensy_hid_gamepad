@@ -15,6 +15,7 @@ import serial
 # Do initial setup
 inputs.init()
 serial.init()
+from report import report
 
 # Disable auto reload
 supervisor.runtime.autoreload = False
@@ -22,7 +23,6 @@ supervisor.runtime.autoreload = False
 while True:
     # First try to read simulated input values via commands from serial:
     if not serial.read_cmd_from_serial():
-        # Only read our physical inputs if no simulated input command received
-        inputs.update_gamepad_axis_from_adc()
-        inputs.update_gamepad_buttons_from_digital_inputs()
-        inputs.update_volume_controls()
+        # Only read & report our physical inputs if no simulated input command received
+        inputs.update_all()
+        report()

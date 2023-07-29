@@ -1,5 +1,8 @@
+from analogio import AnalogIn
+from digitalio import DigitalInOut, Pull
 from microcontroller import Pin
-from adafruit_hid.consumer_control_code import ConsumerControlCode
+from rotaryio import IncrementalEncoder
+
 from adafruit_datetime import datetime
 
 from globals import *
@@ -8,21 +11,27 @@ from utils import range_map
 
 # DO NOT manually manipulate these dictionaries!
 # Use inputs.set_joystick_mappings() & inputs.set_button_mappings() to maintain consistency
-# The ACTIVE set of joystick inputs: gamepad axis -> AnalogIo
+# The ACTIVE set of joystick inputs: gamepad axis -> (Pin, AnalogIo)
 joystick_ais: dict[str, (Pin, AnalogIn)] = {}
-# The ACTIVE set of button inputs: button ID -> DigitalInOut
+# The ACTIVE set of button inputs: button ID -> (Pin, DigitalInOut)
 button_dios: dict[int, (Pin, DigitalInOut)] = {}
-# The ACTIVE set of Pins in use as either buttons or joystick axes
-pin_ios: dict[Pin, object] = {}  # object value will be either int (button) or str (js axis)
-
-# USB HID usage for CC Power
-CC_POWER_CODE = 0x30
+# The ACTIVE set of rotary encoder inputs: (btn_dec, but_inc) -> (Pin, Pin, IncrementalEncoder)
+rotary_encoders: dict[(int, int), (Pin, Pin, IncrementalEncoder)] = {}
+# The ACTIVE set of rotary encoder last readings: inputs: (btn_dec, but_inc) -> (Pin, Pin, IncrementalEncoder)
+rotary_encoder_values: dict[IncrementalEncoder, int] = {}
+# The ACTIVE set of Pins in use. object value will be either:
+# - int (button)
+# - str (js axis)
+# - tuple (rotary encoder)
+pin_ios: dict[Pin, object] = {}  
 
 def init():
     # Set the default joystick input mappings
     set_joystick_mappings(default_joystick_pins)
     # Set the default button input mappings
     set_button_mappings(default_button_pins)
+    # Set the default rotary encoder mappings
+    set_rotary_encoder_mappings(default_rotary_encoder_pins)
 
 def release_pin(pin: Pin):
     """
@@ -35,36 +44,10 @@ def release_pin(pin: Pin):
     if isinstance(io, int):
         release_button_mapping(io)
     elif isinstance(io, str):
+        # Could be either, but safe to call
         release_joystick_mapping(io)
+        release_rotary_encoder_mapping(io)
     # do NOT pin_ios.pop(pin) since it will be done by funcs called above
-
-def release_joystick_mapping(axis: str):
-    """
-    Remove a joystick axis mapping and release the underlying AnalogIo for Pin reuse
-    """
-    global joystick_ais, pin_ios
-    try:
-        pin, analog_in = joystick_ais.get(axis)
-        print(f'Removing existing joystick mapping: {axis}->{pin}:{analog_in}')
-        joystick_ais.pop(axis)
-        analog_in.deinit()
-        pin_ios.pop(pin)
-    except:
-        pass
-
-def release_button_mapping(btn: int):
-    """
-    Remove a button mapping and release the underlying DigitalInOut for Pin reuse
-    """
-    global button_dios, pin_ios
-    try:
-        pin, dio = button_dios.get(btn)
-        print(f'Removing existing button mapping: {btn}->{pin}:{dio}')
-        button_dios.pop(btn)
-        dio.deinit()
-        pin_ios.pop(pin)
-    except:
-        pass
 
 def set_joystick_mappings(js_maps: dict[str, str]) -> None:
     """
@@ -84,8 +67,22 @@ def set_joystick_mappings(js_maps: dict[str, str]) -> None:
             # Create an AnalogIn
             pin_ios[pin] = axis
             analog_in = AnalogIn(pin)
-            print(f'Adding joystick axis mapping: {axis}->{pin}:{analog_in}')
+            print(f'Adding joystick axis mapping: {axis}->({pin}, {analog_in})')
             joystick_ais[axis] = (pin, analog_in)
+
+def release_joystick_mapping(axis: str):
+    """
+    Remove a joystick axis mapping and release the underlying AnalogIo for Pin reuse
+    """
+    global joystick_ais, pin_ios
+    try:
+        pin, analog_in = joystick_ais.get(axis)
+        print(f'Removing existing joystick mapping: {axis}->({pin}, {analog_in})')
+        joystick_ais.pop(axis)
+        analog_in.deinit()
+        pin_ios.pop(pin)
+    except:
+        pass
 
 def set_button_mappings(but_maps: dict[int, str]) -> None:
     """
@@ -104,41 +101,78 @@ def set_button_mappings(but_maps: dict[int, str]) -> None:
             pin_ios[pin] = btn
             dio = DigitalInOut(pin)
             dio.switch_to_input(Pull.UP)
-            print(f'Adding button mapping: {btn}->{pin}:{dio}')
+            print(f'Adding button mapping: {btn}->({pin}, {dio})')
             button_dios[btn] = (pin, dio)
+
+def release_button_mapping(btn: int):
+    """
+    Remove a button mapping and release the underlying DigitalInOut for Pin reuse
+    """
+    global button_dios, pin_ios
+    try:
+        pin, dio = button_dios.get(btn)
+        print(f'Removing existing button mapping: {btn}->({pin}, {dio})')
+        button_dios.pop(btn)
+        dio.deinit()
+        pin_ios.pop(pin)
+    except:
+        pass
+
+def set_rotary_encoder_mappings(rot_enc_maps: dict[str: (str, str, int, int)]):
+    """
+    Add a rotary encoder on digital inputs, and configure the increment and
+    decrement actions of the encoder to button actions.
+
+    Note: Any existing actions for the requested buttons will be removed
+    and all DigitalInOuts already in use will be deinit() 
+    Also, any other button mappings on the CLK/DT DIOs will be removed
+    before being passed to rotaryio.IncrementalEncoder which will re-initialize them.
+
+    Rotary encoder support is not (yet) supported via the serial interface.    
+    """
+
+    global rotary_encoders, pin_ios
+    for rot_enc_id, (dio_clk, dio_dt, btn_dec, btn_inc) in rot_enc_maps.items():
+        # Release any existing rotary encoder mapped to these buttons
+        release_rotary_encoder_mapping(rot_enc_id)
+        # Lookup the requested pins
+        pin_clk = digital_ins.get(dio_clk)
+        pin_dt= digital_ins.get(dio_dt)
+        if None == pin_clk or None == pin_dt:
+            print(f'Insufficient pins to add IncrementalEncoder on {dio_clk}={pin_clk}, {dio_dt}={pin_dt}. Check digital_ins mappings')
+            return
+        # Release any button mappings and DigitalInOut resources using the requested pins
+        release_pin(pin_clk)
+        release_pin(pin_dt)
+        # Add the rotary encoder
+        encoder = IncrementalEncoder(pin_clk, pin_dt)
+        print(f'Adding rotary encoder mapping: {rot_enc_id}->({pin_clk}, {pin_dt}, {btn_dec}, {btn_inc}, {encoder})')
+        rotary_encoders[rot_enc_id] = (pin_clk, pin_dt, btn_dec, btn_inc, encoder)
+        rotary_encoder_values[rot_enc_id] = encoder.position
+        pin_ios[pin_clk] = rot_enc_id
+        pin_ios[pin_dt] = rot_enc_id
+
+def release_rotary_encoder_mapping(rot_enc_id:str):
+    """
+    Remove a button mapping and release the underlying DigitalInOut for Pin reuse
+    """
+    global rotary_encoders, pin_ios
+    try:
+        pin_clk, pin_dt, but_dec, but_inc, encoder = rotary_encoders.get(rot_enc_id)
+        print(f'Removing existing rotary encoder mapping: {rot_enc_id}->({pin_clk}, {pin_dt}, {but_dec}, {but_inc}, {encoder})')
+        rotary_encoders.pop(rot_enc_id)
+        rotary_encoder_values.pop(rot_enc_id)
+        encoder.deinit()
+        pin_ios.pop(pin_clk)
+        pin_ios.pop(pin_dt)
+    except:
+        pass
+
 
 def update_gamepad_axis_from_adc():
     # Read analog inputs
-    axes_values = {}
     for axis, (_, analog_in) in joystick_ais.items():
-        axes_values[axis] = range_map(analog_in.value, 0, 65535, -32767, 32767)
-    # Update gamepad joystick axis values
-    gp.move_joysticks(**axes_values)
-
-def update_volume_controls():
-    # Read Volume controls
-    volUpPressed = False
-    volDownPressed = False
-    volMutePressed = False
-    # BUTTON_VOL_UP/BUTTON_VOL_DOWN might not be in button_dios so use get() instead of direct index
-    volUpDIO = button_dios.get(BUTTON_VOL_UP)
-    volDownDIO = button_dios.get(BUTTON_VOL_DOWN)
-    volMuteDIO = button_dios.get(BUTTON_VOL_MUTE)
-    if None != volUpDIO:
-        volUpPressed = not volUpDIO[1].value
-    if None != volDownDIO:
-        volDownPressed = not volDownDIO[1].value
-    if None != volMuteDIO:
-        volMutePressed = not volMuteDIO[1].value
-    # Send Consumer Control events for Volume
-    if volDownPressed:
-        cc.press(ConsumerControlCode.VOLUME_DECREMENT)
-    elif volUpPressed:
-        cc.press(ConsumerControlCode.VOLUME_INCREMENT)
-    elif volMutePressed:
-        cc.press(ConsumerControlCode.MUTE)
-    else:
-        cc.release()
+        gamepad_axes_values[axis] = range_map(analog_in.value, 0, 65535, -32767, 32767)
 
 # 'Hold START for shutdown' feature handling
 start_button_down = None
@@ -162,24 +196,38 @@ def check_start_button_held_for_shutdown(pressed : bool):
         start_button_down = None
         power_cmd_sent = False
 
-def update_gamepad_buttons_from_digital_inputs():
+def update_buttons_from_digital_inputs():
     # Read buttons
     global pressed_buttons
 
     for btn, (_, dio) in button_dios.items():
-        if btn > BUTTON_MAX:
-            continue
         btn_pressed = not dio.value
         if btn_pressed:
-            pressed_buttons.add(btn + 1)
+            pressed_buttons.add(btn)
         else:
-            pressed_buttons.discard(btn + 1)
+            pressed_buttons.discard(btn)
         if BUTTON_START == btn:
             # handle 'Hold start btn for shutdown'
             check_start_button_held_for_shutdown(btn_pressed)
 
-    # Update gamepad button values
-    released_buttons = set(range(1,17)).difference(pressed_buttons)
-    gp.press_buttons(*pressed_buttons)
-    gp.release_buttons(*released_buttons)
+def update_rotary_encoders():
+    global pressed_buttons
+    for rot_enc_id, (_, _, btn_dec, btn_inc, encoder) in rotary_encoders.items():
+        pressed_buttons.discard(btn_dec)
+        pressed_buttons.discard(btn_inc)
+        current_val = encoder.position
+        last_val = rotary_encoder_values[rot_enc_id]
+        diff = current_val - last_val
+        if diff < 0:
+            # press decrement button
+            pressed_buttons.add(btn_dec)
+        elif diff > 0:
+            # press increment button
+            pressed_buttons.add(btn_inc)
+        rotary_encoder_values[rot_enc_id] = current_val
 
+def update_all():
+    update_gamepad_axis_from_adc()
+    update_buttons_from_digital_inputs()
+    update_rotary_encoders()
+   

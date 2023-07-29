@@ -74,13 +74,13 @@ class Gamepad:
     def press_buttons(self, *buttons):
         """Press and hold the given buttons."""
         for button in buttons:
-            self._buttons_state |= 1 << self._validate_button_number(button) - 1
+            self._buttons_state |= 1 << self._validate_button_number(button)
         self._send()
 
     def release_buttons(self, *buttons):
         """Release the given buttons."""
         for button in buttons:
-            self._buttons_state &= ~(1 << self._validate_button_number(button) - 1)
+            self._buttons_state &= ~(1 << self._validate_button_number(button))
         self._send()
 
     def release_all_buttons(self):
@@ -153,8 +153,8 @@ class Gamepad:
 
     @staticmethod
     def _validate_button_number(button):
-        if not 1 <= button <= 16:
-            raise ValueError("Button number must in range 1 to 16")
+        if not 0 <= button <= 15:
+            raise ValueError("Button number must in range 0 to 15")
         return button
 
     @staticmethod

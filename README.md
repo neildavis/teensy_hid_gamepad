@@ -9,6 +9,7 @@ with the following features:
 * Up to 16 [digital inputs](#digital-inputs) (GPIO) can be attached and mapped to USB HID Gamepad buttons.
 * Up to 4 [analog inputs](#analog-inputs)
 (16-bit ADC) can be attached and mapped to two USB HID Gamepad joystick axes.
+* [Rotary Encoder inputs](#rotary-encoder-inputs) mapped to gamepad button or volume button pairs
 * [USB _Consumer Control_](#usb-consumer-control)
 support for volume up/down/mute and power off.
 * [Programmable](#programmable-serial-interface)
@@ -155,9 +156,10 @@ BUTTON_HAT_LEFT     = 14
 BUTTON_HAT_RIGHT    = 15
 BUTTON_MAX          = BUTTON_HAT_RIGHT
 # CC Volume handled by buttons outside gamepad button range
-BUTTON_VOL_UP       = 20
-BUTTON_VOL_DOWN     = 21
-BUTTON_VOL_MUTE     = 22
+BUTTON_VOL_UP       = ConsumerControlCode.VOLUME_INCREMENT
+BUTTON_VOL_DOWN     = ConsumerControlCode.VOLUME_DECREMENT
+BUTTON_VOL_MUTE     = ConsumerControlCode.MUTE
+BUTTON_POWER        = CC_POWER_CODE
 ```
 
 The names should be self explanatory. Note that 'Hat' is USB HID speak for what is commonly
@@ -172,7 +174,31 @@ controller - which mimics an Xbox 360 controller - using Gamepad test software s
 Note that the 'X' & 'Y' pair and the 'A' & 'B' pair are arranged in opposite order to the commonly
 used SNES controller. If this is an issue, just swap them around.
 
-The values for volume are arbitrarily assigned to not conflict with the gamepad buttons.
+The values for volume are assigned to
+[`adafruit_hid.consumer_control_code.ConsumerControlCode`](https://docs.circuitpython.org/projects/hid/en/latest/_modules/adafruit_hid/consumer_control_code.html)
+values for convenience, given that they do not clash with the gamepad button range (0-15)
+
+### Rotary Encoder Inputs
+
+An arbitrary number of rotary encoders can be used to map onto pairs of digital inputs
+(one digital input each for clockwise/ant-clockwise)
+
+By default __no rotary encoders are configured__. However the code in [`config.py`](./config.py)
+includes a commented-out example for a rotary encoder on inputs `d0` and `d1` to control volume:
+
+```python
+default_rotary_encoder_pins: dict[(int, int): (str, str)] = {
+    # 'rot_vol': ('d0', 'd1', BUTTON_VOL_DOWN, BUTTON_VOL_UP),
+}
+```
+
+The key is arbitrary, but must not conflict with any of the joystick axes (`x`, `y`, `z`, `r_z`)
+The positional arguments in the tuple value are as follows:
+
+1. Digital input id for the 'Clock' (CLK) pin of the rotary encoder. This is a key into `digital_ins`
+2. Digital input id for the 'Detent' (DT) pin of the rotary encoder. This is a key into `digital_ins`
+3. Button id for the rotary encoder decrement (anti-clockwise) movement.
+4. Button id for the rotary encoder increment (clockwise) movement.
 
 ## USB Consumer Control
 

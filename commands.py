@@ -1,17 +1,17 @@
 from time import sleep
-from adafruit_hid.consumer_control_code import ConsumerControlCode
 
 from globals import *
 from config import *
 import inputs
+from report import report
 
 def handle_button_input_command(btn:str, value:str):
     global pressed_buttons
     try:
         butIdx = int(btn)
         value = int(value)
-        if value > 0:
-            pressed_buttons.add(butIdx + 1)
+        if value >= 0:
+            pressed_buttons.add(butIdx)
     except Exception as e:
         print(f'Error reading button command ({btn}={value}): {e}')
 
@@ -23,6 +23,19 @@ def handle_joystick_axis_input_command(axis:str, value:str):
     except Exception as e:
         print(f'Error reading joystick axes command ({axis}={value}): {e}')
 
+def handle_volume_input_command(value: str):
+    if 'mute' == value:
+        pressed_buttons.add(BUTTON_VOL_MUTE)
+    else:
+        try:
+            vol = int(value)
+            if vol < 0:
+                pressed_buttons.add(BUTTON_VOL_DOWN)
+            elif vol > 0:
+                pressed_buttons.add(BUTTON_VOL_UP)
+        except ValueError as e:
+            print(f'Error reading volume command (vol={value}): {e}')
+        
 def handle_button_mapping_command(digital_in:str, btn_str:str) -> None:
     try:
         inputs.set_button_mappings({int(btn_str): digital_in})
@@ -48,16 +61,14 @@ def parse_float_value(value:str) -> float:
         return 0.0
     return value
 
-
 def process_commands(**cmds):
     global pressed_buttons, gamepad_axes_values
     global digital_ins, analog_ins
     pressed_buttons.clear()
+    gamepad_axes_values.clear()
     pre_wait = 0.0
     post_wait = 0.5
     hold_time = 0.5
-    cc_vol = 0
-    cc_mute_toggle = 0
     for input, value in cmds.items():
         if len(input) > 3 and input[0:3] == 'btn':
             # This is a digital button input value, i.e. btn1/btn2/ ... /btn15/btn16
@@ -66,15 +77,14 @@ def process_commands(**cmds):
             # This is an analog input axis value, i.e. x/y/z/r_x
             handle_joystick_axis_input_command(input, value)
         elif input in analog_ins.keys():
+            # This is an analog input->joystick axis remap
             handle_joystick_mapping_command(input, value)
         elif input in digital_ins.keys():
+            # This is a digital input->button remap
             handle_button_mapping_command(input, value)
         elif input == 'vol':
             # This is a volume value, +ve, -ve or 'mute'
-            if value == 'mute':
-                cc_mute_toggle = True
-            else:
-                cc_vol = parse_int_value(value)
+            handle_volume_input_command(value)
         elif input == 'hold':
             # Hold control(s) for a period of time
             hold_time = parse_float_value(value)
@@ -84,33 +94,18 @@ def process_commands(**cmds):
         elif input == 'post':
             # Wait for a period of time AFTER changing (and resetting) any values
             post_wait = parse_float_value(value)
-    released_buttons = set(range(1,17)).difference(pressed_buttons)
 
     # pre-wait period
     sleep(pre_wait)
     # debug
-    print(f'pressed_buttons={pressed_buttons} : released_buttons={released_buttons}')
+    print(f'pressed_buttons={pressed_buttons}')
     print(f'gamepad_axes_values={gamepad_axes_values}')
-    print(f'cc_vol={cc_vol}')
-    # update gamepad button values
-    gp.press_buttons(*pressed_buttons)
-    gp.release_buttons(*released_buttons)
-    # update gamepad axes
-    gp.move_joysticks(**gamepad_axes_values) 
-    # update CC volume
-    if cc_mute_toggle:
-        cc.press(ConsumerControlCode.MUTE)
-    elif cc_vol > 0:
-        cc.press(ConsumerControlCode.VOLUME_INCREMENT)
-    elif cc_vol < 0:
-        cc.press(ConsumerControlCode.VOLUME_DECREMENT)
+    report()
     # hold before releasing all buttons and centring axes
     sleep(hold_time)
     pressed_buttons.clear()
-    gp.release_all_buttons()
-    gamepad_axes_values = {'x':0, 'y':0, 'z':0, 'r_z':0}
-    gp.move_joysticks(**gamepad_axes_values) 
-    cc.release()
+    gamepad_axes_values.clear()
+    report()
     # post-wait period
     sleep(post_wait)
 

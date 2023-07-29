@@ -1,12 +1,15 @@
 import board
 from microcontroller import Pin
-from digitalio import DigitalInOut, Pull
-from analogio import AnalogIn
+from adafruit_hid.consumer_control_code import ConsumerControlCode
+
+# USB HID usage for CC Power
+CC_POWER_CODE = 0x30
 
 """
 Holding 'Start' button for this period will send a Power Off command
 """
 START_BUTTON_HOLD_FOR_SHUTDOWN_SECS = 3
+
 
 # Configure the board with available analog/digital inputs:
 
@@ -57,11 +60,11 @@ BUTTON_HAT_UP       = 12
 BUTTON_HAT_DOWN     = 13
 BUTTON_HAT_LEFT     = 14
 BUTTON_HAT_RIGHT    = 15
-BUTTON_MAX          = BUTTON_HAT_RIGHT
 # CC Volume handled by buttons outside gamepad button range
-BUTTON_VOL_UP       = 20
-BUTTON_VOL_DOWN     = 21
-BUTTON_VOL_MUTE     = 22
+BUTTON_VOL_UP       = ConsumerControlCode.VOLUME_INCREMENT
+BUTTON_VOL_DOWN     = ConsumerControlCode.VOLUME_DECREMENT
+BUTTON_VOL_MUTE     = ConsumerControlCode.MUTE
+BUTTON_POWER        = CC_POWER_CODE
 
 # These are the default mappings of buttons to digital inputs
 default_button_pins: dict[int, str] = {
@@ -81,4 +84,9 @@ default_joystick_pins: dict[str, str] = {
     'y'     : 'a1',
     'z'     : 'a2',
     'r_z'   : 'a3',
+}
+
+# These are the default rotary-encoder mappings:
+default_rotary_encoder_pins: dict[(int, int): (str, str)] = {
+    # 'rot_vol': ('d0', 'd1', BUTTON_VOL_DOWN, BUTTON_VOL_UP),
 }
