@@ -1,4 +1,5 @@
 import board
+from microcontroller import Pin
 from digitalio import DigitalInOut, Pull
 from analogio import AnalogIn
 
@@ -15,11 +16,11 @@ Keys can be anything you like except core commands, [btn{N}, x, y, z, r_z, v, ho
 Keys are referenced by serial command interface. 
 Be sure to update default_joystick_pins below to match if you change them
 """
-analog_ins: dict[str, AnalogIn] = {
-    'a0'    : AnalogIn(board.A0),
-    'a1'    : AnalogIn(board.A1),
-    'a2'    : AnalogIn(board.A2),
-    'a3'    : AnalogIn(board.A3),
+analog_ins: dict[str,  Pin ] = {
+    'a0'    : board.A0,
+    'a1'    : board.A1,
+    'a2'    : board.A2,
+    'a3'    : board.A3,
 }
 
 """
@@ -28,18 +29,16 @@ Keys can be anything you like
 Keys are referenced by serial command interface. 
 Be sure to update default_button_pins below to match if you change them
 """
-digital_ins: dict[str, DigitalInOut] = {
-    'd0'    : DigitalInOut(board.GP0),
-    'd1'    : DigitalInOut(board.GP1),
-    'd2'    : DigitalInOut(board.GP2),
-    'd3'    : DigitalInOut(board.GP3),
-    'd4'    : DigitalInOut(board.GP4),
-    'd5'    : DigitalInOut(board.GP5),
-    'd6'    : DigitalInOut(board.GP6),
-    'd7'    : DigitalInOut(board.GP7),
+digital_ins: dict[str, Pin] = {
+    'd0'    : board.GP0,
+    'd1'    : board.GP1,
+    'd2'    : board.GP2,
+    'd3'    : board.GP3,
+    'd4'    : board.GP4,
+    'd5'    : board.GP5,
+    'd6'    : board.GP6,
+    'd7'    : board.GP7,
 }
-for dio in digital_ins.values():
-    dio.switch_to_input(Pull.UP)
     
 # Enumerate all our digital io inputs as HID button IDs (0-15)
 BUTTON_WEST_Y       = 0

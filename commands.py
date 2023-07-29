@@ -3,6 +3,7 @@ from adafruit_hid.consumer_control_code import ConsumerControlCode
 
 from globals import *
 from config import *
+import inputs
 
 def handle_button_input_command(btn:str, value:str):
     global pressed_buttons
@@ -23,24 +24,13 @@ def handle_joystick_axis_input_command(axis:str, value:str):
         print(f'Error reading joystick axes command ({axis}={value}): {e}')
 
 def handle_button_mapping_command(digital_in:str, btn_str:str) -> None:
-    global digital_ins, button_dios
-    btn = 0
     try:
-        btn = int(btn_str)
+        inputs.set_button_mappings({int(btn_str): digital_in})
     except ValueError as ve:
         print(f'Error mapping button command ({digital_in}={btn_str}): {ve}')
-        return
-    dio = digital_ins.get(digital_in)
-    if None != dio:
-        button_dios[btn] = dio
-
+    
 def handle_joystick_mapping_command(analog_in:str, axis:str) -> None:
-    global analog_ins, joystick_ais
-    if axis in ['x', 'y', 'z', 'r_z']:
-        ai = analog_ins.get(analog_in)
-        if None != ai:
-            # Overwrite config
-            joystick_ais[axis] = ai
+    inputs.set_joystick_mappings({axis: analog_in})
 
 def parse_int_value(value:str) -> int:
     try:
