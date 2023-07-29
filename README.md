@@ -82,11 +82,11 @@ The '`x`' & '`y`' axes correspond to the _left_ analog joystick, whilst '`z`' & 
 You are free to modify these but just be sure they match up in both dictionaries:
 
 ```python
-analog_ins = {
-    'a0'    : analogio.AnalogIn(board.A0),
-    'a1'    : analogio.AnalogIn(board.A1),
-    'a2'    : analogio.AnalogIn(board.A2),
-    'a3'    : analogio.AnalogIn(board.A3),
+analog_ins: dict[str,  Pin ] = {
+    'a0'    : board.A0,
+    'a1'    : board.A1,
+    'a2'    : board.A2,
+    'a3'    : board.A3,
 }
 ```
 
@@ -121,15 +121,15 @@ The values are keys into the available digital inputs defined in `digital_ins`.
 You are free to modify these but just be sure they match up in both dictionaries:
 
 ```python
-digital_ins = {
-    'd0'    : DigitalInOut(board.GP0),
-    'd1'    : DigitalInOut(board.GP1),
-    'd2'    : DigitalInOut(board.GP2),
-    'd3'    : DigitalInOut(board.GP3),
-    'd4'    : DigitalInOut(board.GP4),
-    'd5'    : DigitalInOut(board.GP5),
-    'd6'    : DigitalInOut(board.GP6),
-    'd7'    : DigitalInOut(board.GP7),
+digital_ins: dict[str, Pin] = {
+    'd0'    : board.GP0,
+    'd1'    : board.GP1,
+    'd2'    : board.GP2,
+    'd3'    : board.GP3,
+    'd4'    : board.GP4,
+    'd5'    : board.GP5,
+    'd6'    : board.GP6,
+    'd7'    : board.GP7,
 }
 ```
 

@@ -74,6 +74,7 @@ default_button_pins: dict[int, str] = {
     BUTTON_EAST_A   : 'd6',
     BUTTON_NORTH_X  : 'd7',
 }
+
 # These are the default mappings of analog axes for joysticks:
 default_joystick_pins: dict[str, str] = {
     'x'     : 'a0',
