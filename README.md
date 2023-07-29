@@ -249,7 +249,7 @@ The available commands are listed in the following table:
 |-|-|-|
 | `btn{N}` (e.g. `btn1`) | `1` | Press (and release) button `N`
 | `x`, `y`, `z`, `r_z` | `-16327` - `16327` | Set joystick axes analog values
-| `vol` | `-1,0,1` | Volume. `1` increments, `-1` decrements, `0` toggles 'mute' |
+| `vol` | `-1`, `1`, `mute` | Volume. `1` increments, `-1` decrements, `mute` toggles 'mute' |
 | `{digital input}` (e.g. `d0`) | `{button id}` (e.g. `9` == '`Start`') | [Re]Map a digital input to a button ID |
 | `{analog input}` (e.g. `a0`) | `{joystick axis}` (e.g. `r_z`) | [Re]Map an analog input to a joystick axis |
 | `hold` | +ve floating point values | Time in seconds to hold the controls at specified values |
