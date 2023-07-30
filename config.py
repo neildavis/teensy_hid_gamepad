@@ -20,7 +20,6 @@ Keys are referenced by serial command interface.
 Be sure to update default_joystick_pins below to match if you change them
 """
 analog_ins: dict[str,  Pin ] = {
-    'a0'    : board.A0,
     'a1'    : board.A1,
     'a2'    : board.A2,
     'a3'    : board.A3,
@@ -41,6 +40,7 @@ digital_ins: dict[str, Pin] = {
     'd5'    : board.GP5,
     'd6'    : board.GP6,
     'd7'    : board.GP7,
+    'd26'   : board.GP26,
 }
     
 # Enumerate all our digital io inputs as HID button IDs (0-15)
@@ -68,25 +68,21 @@ BUTTON_POWER        = CC_POWER_CODE
 
 # These are the default mappings of buttons to digital inputs
 default_button_pins: dict[int, str] = {
-    BUTTON_VOL_UP   : 'd0',
-    BUTTON_VOL_DOWN : 'd1',
-    BUTTON_START    : 'd2',
-    BUTTON_SELECT   : 'd3',
-    BUTTON_SOUTH_B  : 'd4',
-    BUTTON_WEST_Y   : 'd5',
-    BUTTON_EAST_A   : 'd6',
-    BUTTON_NORTH_X  : 'd7',
+    BUTTON_NORTH_X  : 'd26',
+    BUTTON_SELECT   : 'd5',
+    BUTTON_START    : 'd6',
+    BUTTON_WEST_Y   : 'd7',
+    BUTTON_VOL_MUTE : 'd2',
 }
 
 # These are the default mappings of analog axes for joysticks:
 default_joystick_pins: dict[str, str] = {
-    'x'     : 'a0',
+    'x'     : 'a2',
     'y'     : 'a1',
-    'z'     : 'a2',
-    'r_z'   : 'a3',
+    'z'     : 'a3',
 }
 
 # These are the default rotary-encoder mappings:
 default_rotary_encoder_pins: dict[str: (str, str, int, int)] = {
-    # 'rot_vol': ('d0', 'd1', BUTTON_VOL_DOWN, BUTTON_VOL_UP),
+    'rot_vol': ('d0', 'd1', BUTTON_VOL_DOWN, BUTTON_VOL_UP),
 }
