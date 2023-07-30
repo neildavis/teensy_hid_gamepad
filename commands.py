@@ -61,11 +61,15 @@ def parse_float_value(value:str) -> float:
         return 0.0
     return value
 
+def reset_gamepad_axes_values():
+    global gamepad_axes_values
+    gamepad_axes_values.update({ 'x':0, 'y':0, 'z':0, 'r_z':0 })
+
 def process_commands(**cmds):
     global pressed_buttons, gamepad_axes_values
     global digital_ins, analog_ins
     pressed_buttons.clear()
-    gamepad_axes_values.clear()
+    reset_gamepad_axes_values()
     pre_wait = 0.0
     post_wait = 0.5
     hold_time = 0.5
@@ -104,7 +108,7 @@ def process_commands(**cmds):
     # hold before releasing all buttons and centring axes
     sleep(hold_time)
     pressed_buttons.clear()
-    gamepad_axes_values.clear()
+    reset_gamepad_axes_values()
     report()
     # post-wait period
     sleep(post_wait)
