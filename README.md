@@ -187,8 +187,8 @@ By default __no rotary encoders are configured__. However the code in [`config.p
 includes a commented-out example for a rotary encoder on inputs `d0` and `d1` to control volume:
 
 ```python
-default_rotary_encoder_pins: dict[(int, int): (str, str)] = {
-    # 'rot_vol': ('d0', 'd1', BUTTON_VOL_DOWN, BUTTON_VOL_UP),
+default_rotary_encoder_pins: dict[str: (str, str, int, int)] = {
+    'rot_vol': ('d0', 'd1', BUTTON_VOL_DOWN, BUTTON_VOL_UP),
 }
 ```
 

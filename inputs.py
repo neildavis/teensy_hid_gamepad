@@ -15,14 +15,13 @@ from utils import range_map
 joystick_ais: dict[str, (Pin, AnalogIn)] = {}
 # The ACTIVE set of button inputs: button ID -> (Pin, DigitalInOut)
 button_dios: dict[int, (Pin, DigitalInOut)] = {}
-# The ACTIVE set of rotary encoder inputs: (btn_dec, but_inc) -> (Pin, Pin, IncrementalEncoder)
-rotary_encoders: dict[(int, int), (Pin, Pin, IncrementalEncoder)] = {}
-# The ACTIVE set of rotary encoder last readings: inputs: (btn_dec, but_inc) -> (Pin, Pin, IncrementalEncoder)
-rotary_encoder_values: dict[IncrementalEncoder, int] = {}
+# The ACTIVE set of rotary encoder inputs: enc_id: str -> (Pin, Pin, int, int, IncrementalEncoder)
+rotary_encoders: dict[str, (Pin, Pin, int, int, IncrementalEncoder)] = {}
+# The ACTIVE set of rotary encoder last readings: inputs: enc_id: str -> value: int
+rotary_encoder_values: dict[str, int] = {}
 # The ACTIVE set of Pins in use. object value will be either:
 # - int (button)
-# - str (js axis)
-# - tuple (rotary encoder)
+# - str (js axis OR rot_enc id)
 pin_ios: dict[Pin, object] = {}  
 
 def init():

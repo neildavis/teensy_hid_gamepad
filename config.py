@@ -87,6 +87,6 @@ default_joystick_pins: dict[str, str] = {
 }
 
 # These are the default rotary-encoder mappings:
-default_rotary_encoder_pins: dict[(int, int): (str, str)] = {
+default_rotary_encoder_pins: dict[str: (str, str, int, int)] = {
     # 'rot_vol': ('d0', 'd1', BUTTON_VOL_DOWN, BUTTON_VOL_UP),
 }
