@@ -196,7 +196,7 @@ The key is arbitrary, but must not conflict with any of the joystick axes (`x`, 
 The positional arguments in the tuple value are as follows:
 
 1. Digital input id for the 'Clock' (CLK) pin of the rotary encoder. This is a key into `digital_ins`
-2. Digital input id for the 'Detent' (DT) pin of the rotary encoder. This is a key into `digital_ins`
+2. Digital input id for the 'Data' (DT) pin of the rotary encoder. This is a key into `digital_ins`
 3. Button id for the rotary encoder decrement (anti-clockwise) movement.
 4. Button id for the rotary encoder increment (clockwise) movement.
 
