@@ -16,10 +16,13 @@ def read_cdc_line_from_serial() -> str:
     """
     global cdc_data
     cdc_str = None
-    while usb_cdc.data.in_waiting > 0:
+    bytes_waiting = usb_cdc.data.in_waiting
+    while bytes_waiting > 0:
+        #print(f'Serial: {bytes_waiting} bytes waiting')
         # Read serial data into cdc_data until we hit a newline
         next_byte = usb_cdc.data.read(1)
         if len(next_byte) > 0:
+            #print(f'Serial: read char: {next_byte[0]}')
             # Break on CR/LF
             if next_byte[0] == 0xd or next_byte[0] == 0xa:
                 if len(cdc_data) > 0:
@@ -34,6 +37,8 @@ def read_cdc_line_from_serial() -> str:
                 continue
             # Add byte to cdc_data buffer
             cdc_data += next_byte
+        bytes_waiting = usb_cdc.data.in_waiting
+
     return cdc_str
 
 def read_cmd_from_serial() -> bool:
