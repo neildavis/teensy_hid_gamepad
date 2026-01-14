@@ -11,13 +11,13 @@ from adafruit_hid.consumer_control_code import ConsumerControlCode
 joystickX = AnalogIn(board.A3)
 joystickY = AnalogIn(board.A2)
 # Joystick Fire (Vulcan & Missiles) are Digital IO - Pulled up and grounded when pressed
-joystickV = DigitalInOut(board.GP2)     # HID button 1
-joystickM = DigitalInOut(board.GP3)     # HID button 2
+joystickV = DigitalInOut(board.GP0)     # HID button 1
+joystickM = DigitalInOut(board.GP1)     # HID button 2
 joystickV.switch_to_input(Pull.UP)
 joystickM.switch_to_input(Pull.UP)
 # Throttle is tri-state Digital IO - Pulled up and grounded when connected
-throttleL = DigitalInOut(board.GP0)
-throttleH = DigitalInOut(board.GP1)
+throttleL = DigitalInOut(board.GP2)
+throttleH = DigitalInOut(board.GP3)
 throttleL.switch_to_input(Pull.UP)
 throttleH.switch_to_input(Pull.UP)
 # Select/Start are Digital IO - Pulled up and grounded when pressed
@@ -43,7 +43,7 @@ def range_map(x, in_min, in_max, out_min, out_max):
 while True:
     # Read analog joystick inputs
     x = range_map(joystickX.value, 0, 65535, -32767, 32767)
-    y = range_map(joystickY.value, 0, 65535, -32767, 32767)
+    y = range_map(joystickY.value, 0, 65535, 32767, -32767)
     # Read digital throttle inputs and map to an analog value
     t = 0
     if not throttleL.value:
@@ -68,7 +68,7 @@ while True:
     released_buttons = set(range(1,17)).difference(pressed_buttons)
 
     # Update gamepad joystick values
-    gp.move_joysticks(x = x, y = y, z = t, r_z=0)
+    gp.move_joysticks(x = x, y = y, z = t, r_z=t)
     # Update gamepad button values
     gp.press_buttons(*pressed_buttons)
     gp.release_buttons(*released_buttons)
@@ -86,4 +86,4 @@ while True:
     else:
         cc.release()
 
-    print(" x: {:6d} y: {:6d} t: {:6d} bp: {} vol: {}".format(x, y, t, pressed_buttons, vol))
+    #print(" x: {:6d} y: {:6d} t: {:6d} bp: {} vol: {}".format(x, y, t, pressed_buttons, vol))
