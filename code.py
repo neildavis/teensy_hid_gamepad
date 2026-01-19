@@ -20,16 +20,16 @@ throttleL = DigitalInOut(board.GP2)
 throttleH = DigitalInOut(board.GP3)
 throttleL.switch_to_input(Pull.UP)
 throttleH.switch_to_input(Pull.UP)
-# Select/Start are Digital IO - Pulled up and grounded when pressed
-buttonSelect = DigitalInOut(board.GP4)  # HID button 9
+# Start is Digital IO - Pulled up and grounded when pressed
 buttonStart = DigitalInOut(board.GP5)   # HID button 10
-buttonSelect.switch_to_input(Pull.UP)
 buttonStart.switch_to_input(Pull.UP)
-# Volume Up/Down are digital IO - Pulled up and grounded when pressed
+# Volume Up/Down/Mute are digital IO - Pulled up and grounded when pressed
 buttonVolUp = DigitalInOut(board.GP6)
 buttonVolDown = DigitalInOut(board.GP7)
 buttonVolUp.switch_to_input(Pull.UP)
 buttonVolDown.switch_to_input(Pull.UP)
+buttonVolMute = DigitalInOut(board.GP4)
+buttonVolMute.switch_to_input(Pull.UP)
 
 # Gamepad
 gp = Gamepad(usb_hid.devices)
@@ -58,9 +58,6 @@ while True:
     # Joystick Missile button
     if not joystickM.value:
         pressed_buttons.append(2)
-    # Select button
-    if not buttonSelect.value:
-        pressed_buttons.append(9)
     # Start button
     if not buttonStart.value:
         pressed_buttons.append(10)
@@ -76,6 +73,7 @@ while True:
     # Volume controls
     volUpPressed = not buttonVolUp.value
     volDownPressed = not buttonVolDown.value
+    volMutePressed = not buttonVolMute.value
     vol = "--"
     if volDownPressed:
        cc.press(ConsumerControlCode.VOLUME_DECREMENT)
@@ -83,6 +81,9 @@ while True:
     elif volUpPressed:
         cc.press(ConsumerControlCode.VOLUME_INCREMENT)
         vol = "UP"
+    elif volMutePressed:
+        cc.press(ConsumerControlCode.MUTE)
+        vol = "MUTE"
     else:
         cc.release()
 
