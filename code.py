@@ -20,6 +20,9 @@ throttleL = DigitalInOut(board.GP2)
 throttleH = DigitalInOut(board.GP3)
 throttleL.switch_to_input(Pull.UP)
 throttleH.switch_to_input(Pull.UP)
+# Sound is Digital IO - Pulled up and grounded when pressed
+buttonSound = DigitalInOut(board.GP4)
+buttonSound.switch_to_input(Pull.UP)
 # Start is Digital IO - Pulled up and grounded when pressed
 buttonStart = DigitalInOut(board.GP5)   # HID button 10
 buttonStart.switch_to_input(Pull.UP)
@@ -28,8 +31,6 @@ buttonVolUp = DigitalInOut(board.GP6)
 buttonVolDown = DigitalInOut(board.GP7)
 buttonVolUp.switch_to_input(Pull.UP)
 buttonVolDown.switch_to_input(Pull.UP)
-buttonVolMute = DigitalInOut(board.GP4)
-buttonVolMute.switch_to_input(Pull.UP)
 
 # Gamepad
 gp = Gamepad(usb_hid.devices)
@@ -73,7 +74,7 @@ while True:
     # Volume controls
     volUpPressed = not buttonVolUp.value
     volDownPressed = not buttonVolDown.value
-    volMutePressed = not buttonVolMute.value
+    soundPressed = not buttonSound.value
     vol = "--"
     if volDownPressed:
        cc.press(ConsumerControlCode.VOLUME_DECREMENT)
@@ -81,9 +82,9 @@ while True:
     elif volUpPressed:
         cc.press(ConsumerControlCode.VOLUME_INCREMENT)
         vol = "UP"
-    elif volMutePressed:
-        cc.press(ConsumerControlCode.MUTE)
-        vol = "MUTE"
+    elif soundPressed:
+        cc.press(ConsumerControlCode.VOLUME_INCREMENT)
+        vol = "INC"
     else:
         cc.release()
 
